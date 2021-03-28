@@ -1,4 +1,6 @@
 import re
+
+from telegram.error import Unauthorized
 from telegram.ext.commandhandler import CommandHandler
 from telegram.ext.updater import Updater
 from telegram.ext.dispatcher import Dispatcher
@@ -42,10 +44,16 @@ def sentenciador(update: Update, context: CallbackContext):
 
 def star(update: Update, context: CallbackContext):
     bot: Bot = context.bot
-    bot.send_message(
-        chat_id=update.message.from_user.id,
-        text=update.message.reply_to_message.text,
-    )
+    try:
+        bot.send_message(
+            chat_id=update.message.from_user.id,
+            text=update.message.reply_to_message.text,
+        )
+    except Unauthorized:
+        bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Antes de poder enviarte mensajes tienes que iniciar una conversación conmigo en https://t.me/comandita_bot",
+        )
 
 
 dispatcher.add_handler(CommandHandler("mimimi", mimimi))
