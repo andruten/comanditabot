@@ -1,5 +1,7 @@
 import re
+from time import sleep
 
+import requests
 from telegram.error import Unauthorized
 from telegram.ext.commandhandler import CommandHandler
 from telegram.ext.updater import Updater
@@ -12,6 +14,10 @@ updater = Updater(
     "1234:1234",
     use_context=True,
 )
+
+
+OPEN_WEATHER_MAP_APP_ID = "1234"
+
 
 dispatcher: Dispatcher = updater.dispatcher
 
@@ -52,11 +58,52 @@ def star(update: Update, context: CallbackContext):
     except Unauthorized:
         bot.send_message(
             chat_id=update.effective_chat.id,
-            text="Antes de poder enviarte mensajes tienes que iniciar una conversación conmigo en https://t.me/comandita_bot",
+            text="Antes de poder enviarte mensajes "
+                 "tienes que iniciar una conversación "
+                 "conmigo en https://t.me/comandita_bot",
         )
+
+
+def weather_in_korea(update: Update, context: CallbackContext):
+    bot: Bot = context.bot
+    bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Dormida... 😡"
+    )
+    sleep(2)
+    bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="No, en serio, ahora te digo."
+    )
+    sleep(1)
+    query = {
+        "q": "Seoul",
+        "appid": OPEN_WEATHER_MAP_APP_ID,
+        "units": "metric",
+    }
+    response = requests.get(
+        "https://api.openweathermap.org/data/2.5/weather",
+        params=query,
+    )
+    weather_data = response.json()
+    weather_text = ", ".join([weather.get("main", "") for weather in weather_data.get("weather", [])])
+    temperature = weather_data.get("main", {})
+    temp = temperature.get("temp", 0)
+    feels_like = temperature.get("feels_like", 0)
+    temp_min = temperature.get("temp_min", 0)
+    temp_max = temperature.get("temp_max", 0)
+    bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"Weather: {weather_text}\n"
+             f"Temp: {temp}ºC\n"
+             f"Feels like: {feels_like}ºC\n"
+             f"Min: {temp_min}ºC\n"
+             f"Max: {temp_max}ºC",
+    )
 
 
 dispatcher.add_handler(CommandHandler("mimimi", mimimi))
 dispatcher.add_handler(CommandHandler("sentenciador", sentenciador))
 dispatcher.add_handler(CommandHandler("star", star))
+dispatcher.add_handler(CommandHandler("tiempoencorea", weather_in_korea))
 updater.start_polling()
