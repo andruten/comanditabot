@@ -23,7 +23,15 @@ dispatcher: Dispatcher = updater.dispatcher
 
 
 def mimimi(update: Update, context: CallbackContext):
-    response = re.sub('[aeou]', 'i', update.message.reply_to_message.text, flags=re.I)
+    bot: Bot = context.bot
+    try:
+        response = re.sub('[aeou]', 'i', update.message.reply_to_message.text, flags=re.I)
+    except AttributeError:
+        bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="No puedo hacer mimimi sin citar un mensaje... 😢",
+        )
+        return
     response = re.sub('[AEOU]', 'I', response, flags=re.I)
     response = re.sub('[áéóú]', 'í', response, flags=re.I)
     response = re.sub('[ÁÉÓÚ]', 'Í', response, flags=re.I)
@@ -31,8 +39,6 @@ def mimimi(update: Update, context: CallbackContext):
     response = re.sub('[ÀÈÒÙ]', 'Ì', response, flags=re.I)
     response = re.sub('[äëöü]', 'ï', response, flags=re.I)
     response = re.sub('[ÄËÖÜ]', 'Ï', response, flags=re.I)
-
-    bot: Bot = context.bot
 
     bot.send_message(
         chat_id=update.effective_chat.id,
@@ -61,6 +67,11 @@ def star(update: Update, context: CallbackContext):
             text="Antes de poder enviarte mensajes "
                  "tienes que iniciar una conversación "
                  "conmigo en https://t.me/comandita_bot",
+        )
+    except AttributeError:
+        bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Cita un mensaje que quieras guardar ⭐️",
         )
 
 
