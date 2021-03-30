@@ -1,5 +1,6 @@
 from time import sleep
-
+from datetime import datetime
+from pytz import timezone
 import requests
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -32,8 +33,9 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
         )
 
     def is_korea_sleeping(self):
-        # TODO: Calculate if korea is sleeping
-        return True
+        now_utc = datetime.now(timezone('UTC'))
+        now_korea = now_utc.astimezone(timezone('Asia/Seoul'))
+        return 0 < now_korea.hour < 8
 
     def get_weather_data(self):
         params = {
@@ -53,6 +55,6 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
         feels_like = temperature.get("feels_like", 0)
         temp_min = temperature.get("temp_min", 0)
         temp_max = temperature.get("temp_max", 0)
-        return f"{weather_text.capitalize()}.\n" \
-               f"Ahora hacen {temp}ºC aunque la sensación térmica es de {feels_like}ºC.\n" \
+        return f"{weather_text.capitalize()}.\n"\
+               f"Ahora hacen {temp}ºC aunque la sensación térmica es de {feels_like}ºC.\n"\
                f"La mínima para hoy es de {temp_min}ºC y la máxima de {temp_max}ºC."
