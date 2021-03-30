@@ -10,23 +10,11 @@ from telegram.update import Update
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.bot import Bot
 
-from commands.mimimi import (
-    MiMiMiCommandHandler,
-)
+from commands.mimimi import MiMiMiCommandHandler
+from commands.sentenciador import PunisherCommandHandler
+
 
 OPEN_WEATHER_MAP_APP_ID = "1234"
-
-
-def sentenciador(update: Update, context: CallbackContext):
-    bot: Bot = context.bot
-    punishments = [
-        "Esto tiene, por lo menos, 3 días.",
-        "O sea, chao.",
-    ]
-    bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=choice(punishments),
-    )
 
 
 def star(update: Update, context: CallbackContext):
@@ -95,7 +83,7 @@ def main():
     )
     dispatcher: Dispatcher = updater.dispatcher
     dispatcher.add_handler(MiMiMiCommandHandler())
-    dispatcher.add_handler(CommandHandler("sentenciador", sentenciador))
+    dispatcher.add_handler(PunisherCommandHandler())
     dispatcher.add_handler(CommandHandler("star", star))
     dispatcher.add_handler(CommandHandler("tiempoencorea", weather_in_korea))
     updater.start_polling()
