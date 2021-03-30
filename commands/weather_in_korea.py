@@ -20,7 +20,7 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
                 chat_id=update.effective_chat.id,
                 text="Dormida... 😡"
             )
-        sleep(2)
+            sleep(2)
         try:
             weather_data = self.get_weather_data()
             text = self.parse_weather_info(weather_data)
@@ -36,13 +36,13 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
         return True
 
     def get_weather_data(self):
-        query = {
+        params = {
             "q": "Seoul",
             "appid": self.OPEN_WEATHER_MAP_APP_ID,
             "units": "metric",
             "lang": "es",
         }
-        response = requests.get(self.WEATHER_ENDPOINT, params=query)
+        response = requests.get(self.WEATHER_ENDPOINT, params=params)
         return response.json()
 
     def parse_weather_info(self, weather_data):
