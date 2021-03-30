@@ -1,10 +1,12 @@
 from telegram.ext.updater import Updater
 from telegram.ext.dispatcher import Dispatcher
 
-from commands.mimimi import MiMiMiCommandHandler
-from commands.sentenciador import PunisherCommandHandler
-from commands.star import StarCommandHandler
-from commands.weather_in_korea import WeatherInKoreaCommandHandler
+from commands import (
+    MiMiMiCommandHandler,
+    PunisherCommandHandler,
+    StarCommandHandler,
+    WeatherInKoreaCommandHandler,
+)
 
 
 def main():
