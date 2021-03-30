@@ -23,19 +23,16 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
         sleep(2)
         try:
             weather_data = self.get_weather_data()
+            text = self.parse_weather_info(weather_data)
         except ConnectionError:
-            bot.send_message(
-                chat_id=update.effective_chat.id,
-                text="No he podido obtener tiempo 😢",
-            )
-            return
-        weather_text = self.parse_weather_info(weather_data)
+            text = "No he podido obtener tiempo 😢"
         bot.send_message(
             chat_id=update.effective_chat.id,
-            text=weather_text,
+            text=text,
         )
 
     def is_korea_sleeping(self):
+        # TODO: Calculate if korea is sleeping
         return True
 
     def get_weather_data(self):
