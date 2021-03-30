@@ -18,6 +18,7 @@ python-telegram-bot==13.4.1
     # via -r requirements.in
 pytz==2021.1
     # via
+    #   -r requirements.in
     #   apscheduler
     #   python-telegram-bot
 requests==2.25.1
