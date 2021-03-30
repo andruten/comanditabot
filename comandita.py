@@ -1,3 +1,6 @@
+import os
+
+from dotenv import load_dotenv
 from telegram.ext.updater import Updater
 from telegram.ext.dispatcher import Dispatcher
 
@@ -8,10 +11,12 @@ from commands import (
     WeatherInKoreaCommandHandler,
 )
 
+load_dotenv()
+
 
 def main():
     updater = Updater(
-        "1536716016:AAGDdwMXhDQoxia_9FaR0d-buchH8j8z9c0",
+        os.environ.get("BOT_TOKEN"),
         use_context=True,
     )
     dispatcher: Dispatcher = updater.dispatcher
