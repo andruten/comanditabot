@@ -13,22 +13,23 @@ class MiMiMiCommandHandler(BaseCommandHandler):
     def process(self, update: Update, context: CallbackContext):
         bot: Bot = context.bot
         try:
-            response = re.sub('[aeou]', 'i', update.message.reply_to_message.text, flags=re.I)
+            text = update.message.reply_to_message.text
         except AttributeError:
             bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="No puedo hacer mimimi sin citar un mensaje... 😢",
             )
             return
-        response = re.sub('[AEOU]', 'I', response, flags=re.I)
-        response = re.sub('[áéóú]', 'í', response, flags=re.I)
-        response = re.sub('[ÁÉÓÚ]', 'Í', response, flags=re.I)
-        response = re.sub('[àèòù]', 'ì', response, flags=re.I)
-        response = re.sub('[ÀÈÒÙ]', 'Ì', response, flags=re.I)
-        response = re.sub('[äëöü]', 'ï', response, flags=re.I)
-        response = re.sub('[ÄËÖÜ]', 'Ï', response, flags=re.I)
+        text = re.sub('[aeou]', 'i', text, flags=re.I)
+        text = re.sub('[AEOU]', 'I', text, flags=re.I)
+        text = re.sub('[áéóú]', 'í', text, flags=re.I)
+        text = re.sub('[ÁÉÓÚ]', 'Í', text, flags=re.I)
+        text = re.sub('[àèòù]', 'ì', text, flags=re.I)
+        text = re.sub('[ÀÈÒÙ]', 'Ì', text, flags=re.I)
+        text = re.sub('[äëöü]', 'ï', text, flags=re.I)
+        text = re.sub('[ÄËÖÜ]', 'Ï', text, flags=re.I)
 
         bot.send_message(
             chat_id=update.effective_chat.id,
-            text=response,
+            text=text,
         )
