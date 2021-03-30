@@ -1,8 +1,6 @@
-from random import choice
 from time import sleep
 
 import requests
-from telegram.error import Unauthorized
 from telegram.ext.commandhandler import CommandHandler
 from telegram.ext.updater import Updater
 from telegram.ext.dispatcher import Dispatcher
@@ -12,30 +10,10 @@ from telegram.bot import Bot
 
 from commands.mimimi import MiMiMiCommandHandler
 from commands.sentenciador import PunisherCommandHandler
+from commands.star import StarCommandHandler
 
 
 OPEN_WEATHER_MAP_APP_ID = "1234"
-
-
-def star(update: Update, context: CallbackContext):
-    bot: Bot = context.bot
-    try:
-        bot.send_message(
-            chat_id=update.message.from_user.id,
-            text=update.message.reply_to_message.text,
-        )
-    except Unauthorized:
-        bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Antes de poder enviarte mensajes "
-                 "tienes que iniciar una conversación "
-                 "conmigo en https://t.me/comandita_bot",
-        )
-    except AttributeError:
-        bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Cita un mensaje que quieras guardar ⭐️",
-        )
 
 
 def weather_in_korea(update: Update, context: CallbackContext):
@@ -84,7 +62,7 @@ def main():
     dispatcher: Dispatcher = updater.dispatcher
     dispatcher.add_handler(MiMiMiCommandHandler())
     dispatcher.add_handler(PunisherCommandHandler())
-    dispatcher.add_handler(CommandHandler("star", star))
+    dispatcher.add_handler(StarCommandHandler())
     dispatcher.add_handler(CommandHandler("tiempoencorea", weather_in_korea))
     updater.start_polling()
     updater.idle()
