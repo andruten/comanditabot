@@ -1,4 +1,4 @@
-import re
+from random import choice
 from time import sleep
 
 import requests
@@ -10,47 +10,22 @@ from telegram.update import Update
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.bot import Bot
 
-updater = Updater(
-    "1234:1234",
-    use_context=True,
+from commands.mimimi import (
+    MiMiMiCommandHandler,
 )
-
 
 OPEN_WEATHER_MAP_APP_ID = "1234"
 
 
-dispatcher: Dispatcher = updater.dispatcher
-
-
-def mimimi(update: Update, context: CallbackContext):
-    bot: Bot = context.bot
-    try:
-        response = re.sub('[aeou]', 'i', update.message.reply_to_message.text, flags=re.I)
-    except AttributeError:
-        bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="No puedo hacer mimimi sin citar un mensaje... 😢",
-        )
-        return
-    response = re.sub('[AEOU]', 'I', response, flags=re.I)
-    response = re.sub('[áéóú]', 'í', response, flags=re.I)
-    response = re.sub('[ÁÉÓÚ]', 'Í', response, flags=re.I)
-    response = re.sub('[àèòù]', 'ì', response, flags=re.I)
-    response = re.sub('[ÀÈÒÙ]', 'Ì', response, flags=re.I)
-    response = re.sub('[äëöü]', 'ï', response, flags=re.I)
-    response = re.sub('[ÄËÖÜ]', 'Ï', response, flags=re.I)
-
-    bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=response,
-    )
-
-
 def sentenciador(update: Update, context: CallbackContext):
     bot: Bot = context.bot
+    punishments = [
+        "Esto tiene, por lo menos, 3 días.",
+        "O sea, chao.",
+    ]
     bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Esto tiene, por lo menos, 3 días.",
+        text=choice(punishments),
     )
 
 
@@ -113,8 +88,19 @@ def weather_in_korea(update: Update, context: CallbackContext):
     )
 
 
-dispatcher.add_handler(CommandHandler("mimimi", mimimi))
-dispatcher.add_handler(CommandHandler("sentenciador", sentenciador))
-dispatcher.add_handler(CommandHandler("star", star))
-dispatcher.add_handler(CommandHandler("tiempoencorea", weather_in_korea))
-updater.start_polling()
+def main():
+    updater = Updater(
+        "1234:1234",
+        use_context=True,
+    )
+    dispatcher: Dispatcher = updater.dispatcher
+    dispatcher.add_handler(MiMiMiCommandHandler())
+    dispatcher.add_handler(CommandHandler("sentenciador", sentenciador))
+    dispatcher.add_handler(CommandHandler("star", star))
+    dispatcher.add_handler(CommandHandler("tiempoencorea", weather_in_korea))
+    updater.start_polling()
+    updater.idle()
+
+
+if __name__ == '__main__':
+    main()
