@@ -14,6 +14,8 @@ pipelines:
             - docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD
             - docker build -t andruten/comanditabot:production .
             - docker push andruten/comanditabot:production
+          services:
+            - docker
       - step:
           name: Deploy to production
           deployment: production
