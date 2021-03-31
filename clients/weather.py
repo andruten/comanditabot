@@ -5,8 +5,10 @@ from clients.exceptions import NotFoundException
 
 
 class WeatherClient:
-    OPEN_WEATHER_MAP_APP_ID = os.environ.get("OPEN_WEATHER_MAP_APP_ID")
-    WEATHER_ENDPOINT = "https://api.openweathermap.org/data/2.5/weather"
+    def __init__(self) -> None:
+        super().__init__()
+        self.OPEN_WEATHER_MAP_APP_ID = os.environ.get("OPEN_WEATHER_MAP_APP_ID")
+        self.WEATHER_ENDPOINT = "https://api.openweathermap.org/data/2.5/weather"
 
     def _default_params(self):
         return {
