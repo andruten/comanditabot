@@ -8,6 +8,9 @@ endif
 run: check_env build
 	docker run --env-file .env -ti comanditabot:production
 
+run_detached: check_env build
+	docker run -d --restart on-failure:3 --env-file .env -ti comanditabot:production
+
 run_dev: check_env build_dev
 	docker run --env-file .env -ti comanditabot:development
 
