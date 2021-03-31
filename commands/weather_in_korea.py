@@ -55,6 +55,6 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
         feels_like = temperature.get("feels_like", 0)
         temp_min = temperature.get("temp_min", 0)
         temp_max = temperature.get("temp_max", 0)
-        return f"{weather_text.capitalize()}.\n"\
-               f"Ahora hacen {temp}ºC aunque la sensación térmica es de {feels_like}ºC.\n"\
+        return f"{weather_text.capitalize()}.\n\n"\
+               f"Ahora hace {temp}ºC aunque la sensación térmica es de {feels_like}ºC.\n"\
                f"La mínima para hoy es de {temp_min}ºC y la máxima de {temp_max}ºC."
