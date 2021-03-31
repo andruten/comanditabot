@@ -1,21 +1,9 @@
 pipelines:
   branches:
-    '{*}':
+    default:
       - step:
           name: Run tests
           image: python:3.9-slim-buster
           script:
-            - make build_dev
-            - make test
-    '{master}':
-      - step:
-          name: Run tests
-          image: python:3.9-slim-buster
-          script:
-            - make build_dev
-            - make test
-      - step:
-          name: Deploy
-          image: python:3.9-slim-buster
-          script:
-            - make build
+            - pip install -r dev-requirements.txt
+            - python -m pytest
