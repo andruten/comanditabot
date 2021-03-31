@@ -11,6 +11,9 @@ class PunisherCommandHandler(BaseCommandHandler):
     PUNISHMENTS = [
         "Esto tiene, por lo menos, 3 días.",
         "O sea, chao.",
+        "Gilipollas tú, gilipollas tú y gilipollas tú.",
+        "Perdona, ¿eres tonto?",
+        "Mmmmmu tonnnto...",
     ]
 
     def process(self, update: Update, context: CallbackContext):
