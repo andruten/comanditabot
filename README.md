@@ -1,6 +1,17 @@
 # Comandita bot
 
+## Build
+### With development dependencies
+```
+make build_dev
+```
+
+### With production dependencies
+```
+make build
+```
+
 ## Tests
 ```
-$ python -m pytest
+$ make test
 ```

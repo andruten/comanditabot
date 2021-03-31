@@ -2,8 +2,20 @@ pipelines:
   branches:
     '{*}':
       - step:
-          name: Testing
+          name: Run tests
+          image: python:3.9-slim-buster
+          script:
+            - make build_dev
+            - make test
+    '{master}':
+      - step:
+          name: Run tests
           image: python:3.9-slim-buster
           script:
             - pip install -r dev-requirements.txt
             - python -m pytest
+      - step:
+          name: Deploy
+          image: python:3.9-slim-buster
+          script:
+            - pip install -r requirements.txt
