@@ -1,10 +1,11 @@
+import os
 import requests
 
 from clients.exceptions import NotFoundException
 
 
 class WeatherClient:
-    OPEN_WEATHER_MAP_APP_ID = "1234"
+    OPEN_WEATHER_MAP_APP_ID = os.environ.get("OPEN_WEATHER_MAP_APP_ID")
     WEATHER_ENDPOINT = "https://api.openweathermap.org/data/2.5/weather"
 
     def _default_params(self):
