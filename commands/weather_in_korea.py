@@ -1,18 +1,17 @@
 from time import sleep
 from datetime import datetime
 from pytz import timezone
-import requests
+
 from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.bot import Bot
 
+from clients.weather import WeatherClient
 from commands.base import BaseCommandHandler
 
 
-class WeatherInKoreaCommandHandler(BaseCommandHandler):
+class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
     COMMAND_NAME = "tiempoencorea"
-    OPEN_WEATHER_MAP_APP_ID = "1234"
-    WEATHER_ENDPOINT = "https://api.openweathermap.org/data/2.5/weather"
 
     def process(self, update: Update, context: CallbackContext):
         bot: Bot = context.bot
@@ -36,28 +35,6 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
         return datetime.now(timezone('UTC'))
 
     def is_korea_sleeping(self):
-        now_utc = datetime.now(timezone('UTC'))
+        now_utc = self.get_utc_now()
         now_korea = now_utc.astimezone(timezone('Asia/Seoul'))
         return 0 <= now_korea.hour < 8
-
-    def get_weather_data(self, city_name):
-        params = {
-            "q": city_name,
-            "appid": self.OPEN_WEATHER_MAP_APP_ID,
-            "units": "metric",
-            "lang": "es",
-        }
-        response = requests.get(self.WEATHER_ENDPOINT, params=params)
-        return response.json()
-
-    def parse_weather_info(self, weather_data):
-        weather_text = ", ".join([weather.get("description", "")
-                                  for weather in weather_data.get("weather", [])])
-        temperature = weather_data.get("main", {})
-        temp = temperature.get("temp", 0)
-        feels_like = temperature.get("feels_like", 0)
-        temp_min = temperature.get("temp_min", 0)
-        temp_max = temperature.get("temp_max", 0)
-        return f"{weather_text.capitalize()}.\n\n"\
-               f"Ahora hace {temp}ºC aunque la sensación térmica es de {feels_like}ºC.\n"\
-               f"La mínima para hoy es de {temp_min}ºC y la máxima de {temp_max}ºC."
