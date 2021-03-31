@@ -12,10 +12,10 @@ pipelines:
           name: Run tests
           image: python:3.9-slim-buster
           script:
-            - pip install -r dev-requirements.txt
-            - python -m pytest
+            - make build_dev
+            - make test
       - step:
           name: Deploy
           image: python:3.9-slim-buster
           script:
-            - pip install -r requirements.txt
+            - make build
