@@ -6,6 +6,7 @@ WORKDIR /app
 
 COPY ./comandita.py /app/
 COPY ./commands/ /app/commands/
+COPY ./clients/ /app/clients/
 COPY ./tests/ /app/tests/
 COPY ./*requirements.txt /app/
 COPY pytest.ini /app/
