@@ -14,4 +14,4 @@ ARG REQS_FILE
 RUN pip install --upgrade pip && \
     pip install -r /app/${REQS_FILE:-"requirements.txt"}
 
-CMD python -m comandita.py
+CMD python comandita.py

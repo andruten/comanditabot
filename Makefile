@@ -1,20 +1,21 @@
 .PHONY:
-ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-DOCKER := docker
 
 check_env:
 ifeq ("$(wildcard .env)","")
 	cp env.sample .env
 endif
 
-start: check_env ## Start all or c=<name> containers in FOREGROUND
-	@$(DOCKER) --env-file .env -ti comanditabot
+start: check_env
+	docker run --env-file .env -ti comanditabot:production
 
-build: check_env ##
-	@$(DOCKER) build . -t comanditabot:production
+start_dev: check_env
+	docker run --env-file .env -ti comanditabot:development
 
-build_dev: check_env ##
-	@$(DOCKER) build --build-arg REQS_FILE=dev-requirements.txt . -t comanditabot:development
+build:
+	docker build . -t comanditabot:production
+
+build_dev: check_env
+	docker build --build-arg REQS_FILE=dev-requirements.txt . -t comanditabot:development
 
 test: check_env
-	@$(DOCKER) run --env-file .env -ti comanditabot:development pytest
+	docker run --env-file .env -ti comanditabot:development pytest
