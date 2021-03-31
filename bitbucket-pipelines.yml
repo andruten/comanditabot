@@ -1,9 +1,26 @@
+image: python:3.9-slim-buster
 pipelines:
   branches:
     '{master}':
       - step:
           name: Run tests
-          image: python:3.9-slim-buster
           script:
             - pip install -r requirements/dev-requirements.txt
             - python -m pytest
+      - step:
+          name: Build image
+          script:
+            - pip install -r requirements/requirements.txt
+            - docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD
+            - docker build -t andruten/comanditabot:production .
+            - docker push andruten/comanditabot:production
+      - step:
+          name: Deploy to production
+          deployment: production
+          script:
+            - echo "Deploying to production environment"
+            - pipe: atlassian/ssh-run:0.2.2
+              variables:
+                SSH_USER: 'andres'
+                SERVER: 'andruten.es'
+                COMMAND: 'docker run -d --restart on-failure:3 -e "BOT_TOKEN=$BOT_TOKEN" -e "OPEN_WEATHER_MAP_APP_ID=$OPEN_WEATHER_MAP_APP_ID" -ti comanditabot:production'
