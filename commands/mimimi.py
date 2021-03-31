@@ -23,11 +23,14 @@ class MiMiMiCommandHandler(BaseCommandHandler):
         )
 
     def do_mimimi(self, text):
-        text = re.sub('[aeou]', 'i', text, flags=re.I)
-        text = re.sub('[AEOU]', 'I', text, flags=re.I)
-        text = re.sub('[áéóú]', 'í', text, flags=re.I)
-        text = re.sub('[ÁÉÓÚ]', 'Í', text, flags=re.I)
-        text = re.sub('[àèòù]', 'ì', text, flags=re.I)
-        text = re.sub('[ÀÈÒÙ]', 'Ì', text, flags=re.I)
-        text = re.sub('[äëöü]', 'ï', text, flags=re.I)
-        return re.sub('[ÄËÖÜ]', 'Ï', text, flags=re.I)
+        text = re.sub('[aeou]', 'i', text)
+        text = re.sub('[AEOU]', 'I', text)
+        text = re.sub('[áéóú]', 'í', text)
+        text = re.sub('[ÁÉÓÚ]', 'Í', text)
+        text = re.sub('[àèòù]', 'ì', text)
+        text = re.sub('[ÀÈÒÙ]', 'Ì', text)
+        text = re.sub('[äëöü]', 'ï', text)
+        text = re.sub('[ÄËÖÜ]', 'Ï', text)
+        text = re.sub('[âêôû]', 'î', text)
+        text = re.sub('[ÂÊÔÛ]', 'Î', text)
+        return text
