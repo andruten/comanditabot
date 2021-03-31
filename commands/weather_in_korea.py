@@ -23,7 +23,7 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
             )
             sleep(2)
         try:
-            weather_data = self.get_weather_data()
+            weather_data = self.get_weather_data("Seoul")
             text = self.parse_weather_info(weather_data)
         except ConnectionError:
             text = "No he podido obtener tiempo 😢"
@@ -32,14 +32,17 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
             text=text,
         )
 
+    def get_utc_now(self):
+        return datetime.now(timezone('UTC'))
+
     def is_korea_sleeping(self):
         now_utc = datetime.now(timezone('UTC'))
         now_korea = now_utc.astimezone(timezone('Asia/Seoul'))
-        return 0 < now_korea.hour < 8
+        return 0 <= now_korea.hour < 8
 
-    def get_weather_data(self):
+    def get_weather_data(self, city_name):
         params = {
-            "q": "Seoul",
+            "q": city_name,
             "appid": self.OPEN_WEATHER_MAP_APP_ID,
             "units": "metric",
             "lang": "es",

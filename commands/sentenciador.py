@@ -16,9 +16,12 @@ class PunisherCommandHandler(BaseCommandHandler):
         "Mmmmmu tonnnto...",
     ]
 
+    def punish(self):
+        return choice(self.PUNISHMENTS)
+
     def process(self, update: Update, context: CallbackContext):
         bot: Bot = context.bot
         bot.send_message(
             chat_id=update.effective_chat.id,
-            text=choice(self.PUNISHMENTS),
+            text=self.punish(),
         )

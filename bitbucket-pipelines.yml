@@ -1,0 +1,9 @@
+pipelines:
+  branches:
+    '{*}':
+      - step:
+          name: Testing
+          image: python:3.9-slim-buster
+          script:
+            - pip install -r dev-requirements.txt
+            - python -m pytest
