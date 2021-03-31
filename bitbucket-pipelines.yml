@@ -5,5 +5,5 @@ pipelines:
           name: Run tests
           image: python:3.9-slim-buster
           script:
-            - pip install -r dev-requirements.txt
+            - pip install -r requirements/dev-requirements.txt
             - python -m pytest
