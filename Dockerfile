@@ -8,11 +8,11 @@ COPY ./comandita.py /app/
 COPY ./commands/ /app/commands/
 COPY ./clients/ /app/clients/
 COPY ./tests/ /app/tests/
-COPY ./*requirements.txt /app/
+COPY ./requirements/ /app/requirements/
 COPY pytest.ini /app/
 
 ARG REQS_FILE
 RUN pip install --upgrade pip && \
-    pip install -r /app/${REQS_FILE:-"requirements.txt"}
+    pip install -r /app/requirements/${REQS_FILE:-"requirements.txt"}
 
 CMD python comandita.py

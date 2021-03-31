@@ -5,10 +5,10 @@ ifeq ("$(wildcard .env)","")
 	cp env.sample .env
 endif
 
-run: check_env
+run: check_env build
 	docker run --env-file .env -ti comanditabot:production
 
-run_dev: check_env
+run_dev: check_env build_dev
 	docker run --env-file .env -ti comanditabot:development
 
 build:
