@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.bot import Bot
 
+from clients.exceptions import NotFoundException
 from clients.weather import WeatherClient
 from commands.base import BaseCommandHandler
 
@@ -24,7 +25,7 @@ class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
         try:
             weather_data = self.get_weather_data("Seoul")
             text = self.parse_weather_info(weather_data)
-        except ConnectionError:
+        except (ConnectionError, NotFoundException, ):
             text = "No he podido obtener tiempo 😢"
         bot.send_message(
             chat_id=update.effective_chat.id,

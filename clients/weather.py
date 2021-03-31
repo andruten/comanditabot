@@ -1,5 +1,7 @@
 import requests
 
+from clients.exceptions import NotFoundException
+
 
 class WeatherClient:
     OPEN_WEATHER_MAP_APP_ID = "1234"
@@ -12,14 +14,17 @@ class WeatherClient:
             "lang": "es",
         }
 
-    def get_weather_data(self, city_name):
-        params = {
-            "q": city_name,
-            **self._default_params()
+    def get_params(self, **kwargs):
+        return {
+            **self._default_params(),
+            **kwargs,
         }
+
+    def get_weather_data(self, city_name):
+        params = self.get_params(q=city_name)
         response = requests.get(self.WEATHER_ENDPOINT, params=params)
         if response.status_code == 404:
-            return {}
+            raise NotFoundException()
         return response.json()
 
     def parse_weather_info(self, weather_data):

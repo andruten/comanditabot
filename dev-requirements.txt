@@ -27,6 +27,8 @@ coverage==5.5
     # via pytest-cov
 decorator==4.4.2
     # via ipython
+freezegun==1.1.0
+    # via -r dev-requirements.in
 idna==2.10
     # via
     #   -r requirements.txt
@@ -71,6 +73,8 @@ pytest==6.2.2
     # via
     #   -r dev-requirements.in
     #   pytest-cov
+python-dateutil==2.8.1
+    # via freezegun
 python-dotenv==0.16.0
     # via -r requirements.txt
 python-telegram-bot==13.4.1
@@ -81,12 +85,18 @@ pytz==2021.1
     #   apscheduler
     #   python-telegram-bot
     #   tzlocal
+requests-mock==1.8.0
+    # via -r dev-requirements.in
 requests==2.25.1
-    # via -r requirements.txt
+    # via
+    #   -r requirements.txt
+    #   requests-mock
 six==1.15.0
     # via
     #   -r requirements.txt
     #   apscheduler
+    #   python-dateutil
+    #   requests-mock
 toml==0.10.2
     # via
     #   ipdb

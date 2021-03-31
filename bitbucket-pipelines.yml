@@ -1,6 +1,6 @@
 pipelines:
   branches:
-    default:
+    '{master}':
       - step:
           name: Run tests
           image: python:3.9-slim-buster
