@@ -20,5 +20,9 @@ build:
 build_dev: check_env
 	docker build --build-arg REQS_FILE=dev-requirements.txt . -t comanditabot:development
 
+push:
+	docker build -t andruten/comanditabot:production .
+	docker push andruten/comanditabot:production
+
 test: check_env build_dev
 	docker run --env-file .env -ti comanditabot:development pytest
