@@ -25,4 +25,4 @@ pipelines:
               variables:
                 SSH_USER: 'andres'
                 SERVER: 'andruten.es'
-                COMMAND: 'docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD ; docker rm -f comanditabot ; docker run --pull -d --name comanditabot --restart on-failure:3 -e "BOT_TOKEN=$BOT_TOKEN" -e "OPEN_WEATHER_MAP_APP_ID=$OPEN_WEATHER_MAP_APP_ID" -ti comanditabot:production'
+                COMMAND: 'docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD ; docker rm -f comanditabot ; docker run --pull always -d --name comanditabot --restart on-failure:3 -e "BOT_TOKEN=$BOT_TOKEN" -e "OPEN_WEATHER_MAP_APP_ID=$OPEN_WEATHER_MAP_APP_ID" -ti comanditabot:production'
