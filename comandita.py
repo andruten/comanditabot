@@ -14,8 +14,8 @@ from commands import (
 
 load_dotenv()
 
-
-logging.basicConfig(level=logging.DEBUG,
+LOG_LEVEL = logging.DEBUG if os.environ.get("LOG_LEVEL", "INFO") == "DEBUG" else logging.INFO
+logging.basicConfig(level=LOG_LEVEL,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 
