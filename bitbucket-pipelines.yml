@@ -1,5 +1,11 @@
 image: python:3.9-slim-buster
 pipelines:
+  default:
+    - step:
+        name: Run tests
+        script:
+          - pip install -r requirements/dev-requirements.txt
+          - python -m pytest
   branches:
     '{master}':
       - step:
@@ -27,4 +33,4 @@ pipelines:
                 SERVER: 'andruten.es'
                 COMMAND: 'docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD ;
                           docker rm -f comanditabot ;
-                          docker run --pull always -d --name comanditabot --restart on-failure:3 -e "BOT_TOKEN=$BOT_TOKEN" -e "OPEN_WEATHER_MAP_APP_ID=$OPEN_WEATHER_MAP_APP_ID" andruten/comanditabot:production'
+                          docker run --pull always -d --name comanditabot --restart on-failure:3 -e "BOT_TOKEN=$BOT_TOKEN" -e "OPEN_WEATHER_MAP_APP_ID=$OPEN_WEATHER_MAP_APP_ID" -e "LOG_LEVEL=INFO" andruten/comanditabot:production'
