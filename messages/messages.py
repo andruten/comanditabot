@@ -1,4 +1,5 @@
 from random import random, choice
+import re
 
 import validators
 from telegram import Update
@@ -9,28 +10,46 @@ from .exceptions import DoNothingException
 
 
 class Message:
-    PROBABILITY = 20
 
     def _shall_i_send_it(self):
         # Only response with a PROBABILITY
-        if random() < self.PROBABILITY / 100.:
+        if random() > (self.probability / 100):
             raise DoNothingException()
         return True
 
-    def __init__(self, message) -> None:
+    def __init__(self, message, probability=20) -> None:
         super().__init__()
-        self._shall_i_send_it()
         self.message = message
+        self.probability = probability
+        self._shall_i_send_it()
 
     def transform(self):
         raise NotImplementedError()
 
 
 class RajoyMessage(Message):
-    PROBABILITY = 100
 
     def transform(self):
         return choice(RAJOY_PHRASES)
+
+
+class MiMiMiMessage(Message):
+
+    def _do_mimimi(self):
+        text = re.sub('[aeou]', 'i', self.message)
+        text = re.sub('[AEOU]', 'I', text)
+        text = re.sub('[áéóú]', 'í', text)
+        text = re.sub('[ÁÉÓÚ]', 'Í', text)
+        text = re.sub('[àèòù]', 'ì', text)
+        text = re.sub('[ÀÈÒÙ]', 'Ì', text)
+        text = re.sub('[äëöü]', 'ï', text)
+        text = re.sub('[ÄËÖÜ]', 'Ï', text)
+        text = re.sub('[âêôû]', 'î', text)
+        text = re.sub('[ÂÊÔÛ]', 'Î', text)
+        return text
+
+    def transform(self):
+        return self._do_mimimi()
 
 
 class PunishmentMessage(Message):
@@ -44,8 +63,8 @@ def message_factory(message):
     if validators.url(message):
         return PunishmentMessage(message).transform()
     if 'rajoy' in message.lower():
-        return RajoyMessage(message).transform()
-    raise DoNothingException()
+        return RajoyMessage(message, probability=100).transform()
+    return MiMiMiMessage(message, probability=1).transform()
 
 
 class MessageHandlerFactory(MessageHandler):
