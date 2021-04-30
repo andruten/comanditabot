@@ -2,7 +2,7 @@ from random import random, choice
 import re
 
 import validators
-from telegram import Update
+from telegram import Update, Bot
 from telegram.ext import MessageHandler, Filters, CallbackContext
 
 from .constants import RAJOY_PHRASES
@@ -11,17 +11,20 @@ from .exceptions import DoNothingException
 
 class Message:
 
+    def __init__(self, message, probability=20) -> None:
+        super().__init__()
+        self.message = message
+        self.probability = probability
+        self._shall_i_send_it()
+
     def _shall_i_send_it(self):
         # Only response with a PROBABILITY
         if random() > (self.probability / 100):
             raise DoNothingException()
         return True
 
-    def __init__(self, message, probability=20) -> None:
-        super().__init__()
-        self.message = message
-        self.probability = probability
-        self._shall_i_send_it()
+    def send_as_reply(self):
+        return False
 
     def transform(self):
         raise NotImplementedError()
@@ -48,11 +51,17 @@ class MiMiMiMessage(Message):
         text = re.sub('[ÂÊÔÛ]', 'Î', text)
         return text
 
+    def send_as_reply(self):
+        return True
+
     def transform(self):
         return self._do_mimimi()
 
 
 class PunishmentMessage(Message):
+
+    def send_as_reply(self):
+        return True
 
     def transform(self):
         # TODO: Mix with PunisherCommandHandler
@@ -61,10 +70,10 @@ class PunishmentMessage(Message):
 
 def message_factory(message):
     if validators.url(message):
-        return PunishmentMessage(message).transform()
+        return PunishmentMessage(message)
     if 'rajoy' in message.lower():
-        return RajoyMessage(message, probability=100).transform()
-    return MiMiMiMessage(message, probability=1).transform()
+        return RajoyMessage(message, probability=100)
+    return MiMiMiMessage(message, probability=1)
 
 
 class MessageHandlerFactory(MessageHandler):
@@ -72,11 +81,19 @@ class MessageHandlerFactory(MessageHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(Filters.text & ~Filters.command, self.process, *args, **kwargs)
 
-    def process(self, update: Update, _: CallbackContext):
+    def process(self, update: Update, context: CallbackContext):
         try:
-            text = message_factory(update.message.text)
+            message_class = message_factory(update.message.text)
         except DoNothingException:
             pass
         else:
-            # Reply to message
-            update.message.reply_text(text)
+            text = message_class.transform()
+            if message_class.send_as_reply():
+                # Reply to message
+                update.message.reply_text(text)
+            else:
+                bot: Bot = context.bot
+                bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=text,
+                )
