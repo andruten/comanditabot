@@ -1,0 +1,2 @@
+class DoNothingException(Exception):
+    pass
