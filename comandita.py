@@ -11,6 +11,9 @@ from commands import (
     StarCommandHandler,
     WeatherInKoreaCommandHandler,
 )
+from messages import (
+    MessageHandlerFactory
+)
 
 load_dotenv()
 
@@ -29,6 +32,10 @@ def main():
     dispatcher.add_handler(PunisherCommandHandler())
     dispatcher.add_handler(StarCommandHandler())
     dispatcher.add_handler(WeatherInKoreaCommandHandler())
+
+    # on non command i.e message - echo the message on Telegram
+    dispatcher.add_handler(MessageHandlerFactory())
+
     updater.start_polling()
     updater.idle()
 

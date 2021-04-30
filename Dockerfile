@@ -13,6 +13,7 @@ RUN pip install -r /app/requirements/${REQS_FILE:-"requirements.txt"}
 # Copy code
 COPY ./comandita.py /app/
 COPY ./commands/ /app/commands/
+COPY ./messages/ /app/messages/
 COPY ./clients/ /app/clients/
 COPY ./tests/ /app/tests/
 COPY pytest.ini /app/
