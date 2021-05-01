@@ -32,5 +32,6 @@ pipelines:
                 SSH_USER: 'andres'
                 SERVER: 'andruten.es'
                 COMMAND: 'docker login -u $DOCKER_HUB_USER -p $DOCKER_HUB_PASSWORD ;
+                          docker stop comanditabot ;
                           docker rm -f comanditabot ;
                           docker run --pull always -d --name comanditabot --restart on-failure:3 -e "BOT_TOKEN=$BOT_TOKEN" -e "OPEN_WEATHER_MAP_APP_ID=$OPEN_WEATHER_MAP_APP_ID" -e "LOG_LEVEL=INFO" andruten/comanditabot:production'
