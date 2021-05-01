@@ -13,6 +13,8 @@ from commands import (
 
 
 # mimimi
+from messages.messages import PunishmentMessage
+
 
 @pytest.fixture
 def mimimi_command_handler():
@@ -45,7 +47,7 @@ def punisher_command_handler():
 
 
 def test_punishments(punisher_command_handler):
-    assert punisher_command_handler.punish() in punisher_command_handler.PUNISHMENTS
+    assert punisher_command_handler.punish(None, probability=100) in PunishmentMessage.PUNISHMENTS
 
 
 # star

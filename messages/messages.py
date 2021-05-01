@@ -1,4 +1,5 @@
-from random import random, choice
+from datetime import date
+from random import random, choice, randint
 import re
 
 import validators
@@ -59,13 +60,19 @@ class MiMiMiMessage(Message):
 
 
 class PunishmentMessage(Message):
+    PUNISHMENTS = [
+        "Esto tiene, por lo menos, 3 días.",
+        "O sea, chao.",
+        "Gilipollas tú, gilipollas tú y gilipollas tú.",
+        "Perdona, ¿eres tonto?",
+        "Mmmmmu tonnnto...",
+    ]
 
     def send_as_reply(self):
         return True
 
     def transform(self):
-        # TODO: Mix with PunisherCommandHandler
-        return "Eso tiene, por lo menos, tres días."
+        return choice(self.PUNISHMENTS)
 
 
 def message_factory(message):
@@ -80,8 +87,22 @@ class MessageHandlerFactory(MessageHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(Filters.text & ~Filters.command, self.process, *args, **kwargs)
+        self.daily_counter = {}
 
     def process(self, update: Update, context: CallbackContext):
+        today = date.today().strftime('%Y-%m-%d')
+        if today not in self.daily_counter:
+            self.daily_counter[today] = {
+                'messages': 0,
+                'alert_when': randint(200, 300)
+            }
+        self.daily_counter[today]['messages'] += 1
+        if self.daily_counter[today].get('messages') == self.daily_counter[today].get('alert_when'):
+            bot: Bot = context.bot
+            bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f'¡La virgen, lo que escribís! {self.daily_counter[today].get("messages")} mensajes',
+            )
         try:
             message_class = message_factory(update.message.text)
         except DoNothingException:
