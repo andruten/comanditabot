@@ -1,6 +1,12 @@
 FROM python:3.9-slim-buster
 
-RUN mkdir /app
+RUN mkdir /app \
+    && addgroup --gid 4000 apprunner \
+    && adduser --system --disabled-password --disabled-login --gecos "" --gid 4000 --uid 4000 apprunner \
+    && chown -R apprunner:apprunner /app \
+    && chsh -s /bin/false apprunner
+
+USER apprunner
 
 WORKDIR /app
 
