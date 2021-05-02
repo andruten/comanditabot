@@ -9,11 +9,11 @@ class PunisherCommandHandler(BaseCommandHandler):
     COMMAND_NAME = "sentenciador"
 
     def punish(self, message, **kwargs):
-        return PunishmentMessage(message, **kwargs).transform()
+        return PunishmentMessage(message, probability=100).transform()
 
     def process(self, update: Update, context: CallbackContext):
         bot: Bot = context.bot
         bot.send_message(
             chat_id=update.effective_chat.id,
-            text=self.punish(update.message.reply_to_message.text),
+            text=self.punish(""),
         )
