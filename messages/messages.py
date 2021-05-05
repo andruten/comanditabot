@@ -6,13 +6,13 @@ import validators
 from telegram import Update, Bot
 from telegram.ext import MessageHandler, Filters, CallbackContext
 
-from .constants import RAJOY_PHRASES
+from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
 
 
 class Message:
 
-    def __init__(self, message, probability=20) -> None:
+    def __init__(self, message=None, probability=100) -> None:
         super().__init__()
         self.message = message
         self.probability = probability
@@ -24,7 +24,8 @@ class Message:
             raise DoNothingException()
         return True
 
-    def send_as_reply(self):
+    @property
+    def reply(self):
         return False
 
     def transform(self):
@@ -37,22 +38,34 @@ class RajoyMessage(Message):
         return choice(RAJOY_PHRASES)
 
 
+class ZapateroMessage(Message):
+
+    def transform(self):
+        return choice(ZAPATERO_PHRASES)
+
+
 class MiMiMiMessage(Message):
+    REPLACES = (
+        ('[aeou]', 'i'),
+        ('[AEOU]', 'I'),
+        ('[áéóú]', 'í'),
+        ('[ÁÉÓÚ]', 'Í'),
+        ('[àèòù]', 'ì'),
+        ('[ÀÈÒÙ]', 'Ì'),
+        ('[äëöü]', 'ï'),
+        ('[ÄËÖÜ]', 'Ï'),
+        ('[âêôû]', 'î'),
+        ('[ÂÊÔÛ]', 'Î'),
+    )
 
     def _do_mimimi(self):
-        text = re.sub('[aeou]', 'i', self.message)
-        text = re.sub('[AEOU]', 'I', text)
-        text = re.sub('[áéóú]', 'í', text)
-        text = re.sub('[ÁÉÓÚ]', 'Í', text)
-        text = re.sub('[àèòù]', 'ì', text)
-        text = re.sub('[ÀÈÒÙ]', 'Ì', text)
-        text = re.sub('[äëöü]', 'ï', text)
-        text = re.sub('[ÄËÖÜ]', 'Ï', text)
-        text = re.sub('[âêôû]', 'î', text)
-        text = re.sub('[ÂÊÔÛ]', 'Î', text)
+        text = self.message
+        for key, value in self.REPLACES:
+            text = re.sub(key, value, text)
         return text
 
-    def send_as_reply(self):
+    @property
+    def reply(self):
         return True
 
     def transform(self):
@@ -68,19 +81,26 @@ class PunishmentMessage(Message):
         "Mmmmmu tonnnto...",
     ]
 
-    def send_as_reply(self):
+    @property
+    def reply(self):
         return True
 
     def transform(self):
         return choice(self.PUNISHMENTS)
 
 
-def message_factory(message):
+def message_factory(message, probability=None):
     if validators.url(message):
-        return PunishmentMessage(message)
-    if 'rajoy' in message.lower():
-        return RajoyMessage(message, probability=100)
-    return MiMiMiMessage(message, probability=1)
+        if not probability:
+            probability = 10
+        return PunishmentMessage(message, probability=probability)
+    if any(x in message.lower() for x in ['brey', 'rajoy', 'mariano']):
+        return RajoyMessage(message)
+    if any(x in message.lower() for x in ['zapatero', 'zp']):
+        return ZapateroMessage(message)
+    if not probability:
+        probability = 1
+    return MiMiMiMessage(message, probability=probability)
 
 
 class MessageHandlerFactory(MessageHandler):
@@ -89,7 +109,7 @@ class MessageHandlerFactory(MessageHandler):
         super().__init__(Filters.text & ~Filters.command, self.process, *args, **kwargs)
         self.daily_counter = {}
 
-    def process(self, update: Update, context: CallbackContext):
+    def grumpy_digi(self, update: Update, context: CallbackContext):
         today = date.today().strftime('%Y-%m-%d')
         if today not in self.daily_counter:
             self.daily_counter[today] = {
@@ -99,17 +119,21 @@ class MessageHandlerFactory(MessageHandler):
         self.daily_counter[today]['messages'] += 1
         if self.daily_counter[today].get('messages') == self.daily_counter[today].get('alert_when'):
             bot: Bot = context.bot
+            messages_count = self.daily_counter[today].get("messages")
             bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f'¡La virgen, lo que escribís! {self.daily_counter[today].get("messages")} mensajes',
+                text=f'¡La virgen, lo que escribís! {messages_count} mensajes',
             )
+
+    def process(self, update: Update, context: CallbackContext):
+        self.grumpy_digi(update, context)
         try:
             message_class = message_factory(update.message.text)
         except DoNothingException:
             pass
         else:
             text = message_class.transform()
-            if message_class.send_as_reply():
+            if message_class.reply:
                 # Reply to message
                 update.message.reply_text(text)
             else:

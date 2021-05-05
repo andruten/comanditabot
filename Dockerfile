@@ -23,5 +23,6 @@ COPY ./messages/ /app/messages/
 COPY ./clients/ /app/clients/
 COPY ./tests/ /app/tests/
 COPY pytest.ini /app/
+COPY .coveragerc /app/
 
 CMD python comandita.py

@@ -6,13 +6,13 @@ ifeq ("$(wildcard .env)","")
 endif
 
 run: check_env build
-	docker run --env-file .env -ti comanditabot:production
+	docker run --rm --env-file .env -ti comanditabot:production
 
 run_detached: check_env build
-	docker run -d --restart on-failure:3 --env-file .env -ti comanditabot:production
+	docker run --rm -d --restart on-failure:3 --env-file .env -ti comanditabot:production
 
 run_dev: check_env build_dev
-	docker run --env-file .env -ti comanditabot:development
+	docker run --rm --env-file .env -ti comanditabot:development
 
 build:
 	docker build . -t comanditabot:production
@@ -24,5 +24,8 @@ push:
 	docker build -t andruten/comanditabot:production .
 	docker push andruten/comanditabot:production
 
+bash: check_env build_dev
+	docker run --rm --env-file .env -ti comanditabot:development bash
+
 test: check_env build_dev
-	docker run --env-file .env -ti comanditabot:development pytest
+	docker run --rm --env-file .env -ti comanditabot:development python -m pytest .
