@@ -47,7 +47,7 @@ def punisher_command_handler():
 
 
 def test_punishments(punisher_command_handler):
-    assert punisher_command_handler.punish(None, probability=100) in PunishmentMessage.PUNISHMENTS
+    assert punisher_command_handler.punish() in PunishmentMessage.PUNISHMENTS
 
 
 # star
