@@ -6,14 +6,16 @@ RUN mkdir /app \
     && chown -R apprunner:apprunner /app \
     && chsh -s /bin/false apprunner
 
+# Requirements
+RUN pip install --upgrade pip
+
 USER apprunner
 
 WORKDIR /app
 
-# Requirements
+ENV PATH="/home/apprunner/.local/bin:${PATH}"
 COPY ./requirements/ /app/requirements/
 ARG REQS_FILE
-RUN pip install --upgrade pip
 RUN pip install -r /app/requirements/${REQS_FILE:-"requirements.txt"}
 
 # Copy code
