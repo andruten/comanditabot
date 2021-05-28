@@ -32,6 +32,12 @@ class Message:
         raise NotImplementedError()
 
 
+class DigiMessage(Message):
+
+    def transform(self):
+        return "Woof! Woof!"
+
+
 class RajoyMessage(Message):
 
     def transform(self):
@@ -98,6 +104,8 @@ def message_factory(message, probability=None):
         return RajoyMessage(message)
     if any(x in message.lower() for x in ['zapatero', 'zp']):
         return ZapateroMessage(message)
+    if 'digi' in message.lower():
+        return DigiMessage(message)
     if not probability:
         probability = 1
     return MiMiMiMessage(message, probability=probability)
