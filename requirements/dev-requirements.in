@@ -1,6 +1,0 @@
--c requirements.txt
-pytest
-pytest-cov
-ipdb
-freezegun
-requests-mock
