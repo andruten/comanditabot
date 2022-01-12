@@ -1,7 +1,9 @@
 import pytest
 
 from messages.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
-from messages.messages import RajoyMessage, ZapateroMessage, MiMiMiMessage, PunishmentMessage, message_factory
+from messages.messages import (
+    RajoyMessage, ZapateroMessage, MiMiMiMessage, PunishmentMessage, message_factory, KidsAlertMessage
+)
 
 
 def test_rajoy_message():
@@ -31,8 +33,15 @@ def test_punishent_message():
     assert transformed_message in message_handler.PUNISHMENTS
 
 
+def test_kids_alert_message():
+    message_handler = KidsAlertMessage()
+    assert message_handler.reply is True
+    transformed_message = message_handler.transform()
+    assert transformed_message == '🚨🚨 Kids Alert! 🚨🚨'
+
+
 @pytest.mark.parametrize(
-    "message,message_class",
+    'message,message_class',
     [
         ('Vas a votar a Rajoy, y lo sabes', RajoyMessage),
         ('Esta es la españa que nos deja zapatero', ZapateroMessage),
