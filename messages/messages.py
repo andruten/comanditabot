@@ -1,4 +1,5 @@
-from datetime import date
+from abc import ABCMeta, abstractmethod
+from datetime import datetime
 from random import random, choice, randint
 import re
 
@@ -10,7 +11,8 @@ from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
 
 
-class Message:
+class Message(metaclass=ABCMeta):
+    reply = False
 
     def __init__(self, message=None, probability=100) -> None:
         super().__init__()
@@ -24,12 +26,9 @@ class Message:
             raise DoNothingException()
         return True
 
-    @property
-    def reply(self):
-        return False
-
+    @abstractmethod
     def transform(self):
-        raise NotImplementedError()
+        pass
 
 
 class DigiMessage(Message):
@@ -50,7 +49,15 @@ class ZapateroMessage(Message):
         return choice(ZAPATERO_PHRASES)
 
 
+class KidsAlertMessage(Message):
+    reply = True
+
+    def transform(self):
+        return '🚨🚨 Kids Alert! 🚨🚨'
+
+
 class MiMiMiMessage(Message):
+    reply = True
     REPLACES = (
         ('[aeou]', 'i'),
         ('[AEOU]', 'I'),
@@ -70,15 +77,12 @@ class MiMiMiMessage(Message):
             text = re.sub(key, value, text)
         return text
 
-    @property
-    def reply(self):
-        return True
-
     def transform(self):
         return self._do_mimimi()
 
 
 class PunishmentMessage(Message):
+    reply = True
     PUNISHMENTS = [
         "Esto tiene, por lo menos, 3 días.",
         "O sea, chao.",
@@ -86,10 +90,6 @@ class PunishmentMessage(Message):
         "Perdona, ¿eres tonto?",
         "Mmmmmu tonnnto...",
     ]
-
-    @property
-    def reply(self):
-        return True
 
     def transform(self):
         return choice(self.PUNISHMENTS)
@@ -104,6 +104,8 @@ def message_factory(message, probability=None):
         return RajoyMessage(message)
     if any(x in message.lower() for x in ['zapatero', 'zp']):
         return ZapateroMessage(message)
+    if any(x in message.lower() for x in ['niño', 'niña', 'hijo', 'hija', 'papá', 'papi']):
+        return KidsAlertMessage()
     if 'digi' in message.lower():
         return DigiMessage(message)
     if not probability:
@@ -118,7 +120,7 @@ class MessageHandlerFactory(MessageHandler):
         self.daily_counter = {}
 
     def grumpy_digi(self, update: Update, context: CallbackContext):
-        today = date.today().strftime('%Y-%m-%d')
+        today = datetime.utcnow().today().strftime('%Y-%m-%d')
         if today not in self.daily_counter:
             self.daily_counter[today] = {
                 'messages': 0,
