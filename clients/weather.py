@@ -7,14 +7,14 @@ from clients.exceptions import NotFoundException
 class WeatherClient:
     def __init__(self) -> None:
         super().__init__()
-        self.OPEN_WEATHER_MAP_APP_ID = os.environ.get("OPEN_WEATHER_MAP_APP_ID")
-        self.WEATHER_ENDPOINT = "https://api.openweathermap.org/data/2.5/weather"
+        self.OPEN_WEATHER_MAP_APP_ID = os.environ.get('OPEN_WEATHER_MAP_APP_ID')
+        self.WEATHER_ENDPOINT = 'https://api.openweathermap.org/data/2.5/weather'
 
     def _default_params(self):
         return {
-            "appid": self.OPEN_WEATHER_MAP_APP_ID,
-            "units": "metric",
-            "lang": "es",
+            'appid': self.OPEN_WEATHER_MAP_APP_ID,
+            'units': 'metric',
+            'lang': 'es',
         }
 
     def get_params(self, **kwargs):
@@ -31,10 +31,10 @@ class WeatherClient:
         return response.json()
 
     def parse_weather_info(self, weather_data):
-        weather_text = ", ".join([weather.get("description", "")
-                                  for weather in weather_data.get("weather", [])])
-        temperature = weather_data.get("main", {})
-        temp = temperature.get("temp", 0)
-        feels_like = temperature.get("feels_like", 0)
-        return f"{weather_text.capitalize()}.\n\n"\
-               f"Ahora hace {temp}ºC aunque la sensación térmica es de {feels_like}ºC."
+        weather_text = ', '.join([weather.get('description', '')
+                                  for weather in weather_data.get('weather', [])])
+        temperature = weather_data.get('main', {})
+        temp = temperature.get('temp', 0)
+        feels_like = temperature.get('feels_like', 0)
+        return f'{weather_text.capitalize()}.\n\n'\
+               f'Ahora hace {temp}ºC aunque la sensación térmica es de {feels_like}ºC.'

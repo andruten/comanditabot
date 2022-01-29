@@ -8,7 +8,7 @@ from messages.messages import MiMiMiMessage
 
 
 class MiMiMiCommandHandler(BaseCommandHandler):
-    COMMAND_NAME = "mimimi"
+    COMMAND_NAME = 'mimimi'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,8 +27,8 @@ class MiMiMiCommandHandler(BaseCommandHandler):
                 return
             self.mimimis[text] = update.message.reply_to_message.text
         except AttributeError:
-            text = "No puedo hacer mimimi sin citar un mensaje... 😢"
-        # "store" the translated value for joking purposes
+            text = 'No puedo hacer mimimi sin citar un mensaje... 😢'
+        # 'store' the translated value for joking purposes
         bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,

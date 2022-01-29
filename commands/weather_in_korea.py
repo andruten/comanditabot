@@ -12,21 +12,21 @@ from commands.base import BaseCommandHandler
 
 
 class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
-    COMMAND_NAME = "tiempoencorea"
+    COMMAND_NAME = 'tiempoencorea'
 
     def process(self, update: Update, context: CallbackContext):
         bot: Bot = context.bot
         if self.is_korea_sleeping():
             bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="Dormida... 😡"
+                text='Dormida... 😡'
             )
             sleep(2)
         try:
-            weather_data = self.get_weather_data("Seoul")
+            weather_data = self.get_weather_data('Seoul')
             text = self.parse_weather_info(weather_data)
         except (ConnectionError, NotFoundException, ):
-            text = "No he podido obtener tiempo 😢"
+            text = 'No he podido obtener tiempo 😢'
         bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,

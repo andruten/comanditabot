@@ -11,6 +11,9 @@ from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
 
 
+KIDS_ALERT = ['niño', 'niña', 'hijo', 'hija', 'papá', 'papi', 'nene', 'kid', 'sobri', 'peque', 'bebé', 'mocoso']
+
+
 class Message(metaclass=ABCMeta):
     reply = False
 
@@ -34,7 +37,7 @@ class Message(metaclass=ABCMeta):
 class DigiMessage(Message):
 
     def transform(self):
-        return "Woof! Woof!"
+        return 'Woof! Woof!'
 
 
 class RajoyMessage(Message):
@@ -84,11 +87,12 @@ class MiMiMiMessage(Message):
 class PunishmentMessage(Message):
     reply = True
     PUNISHMENTS = [
-        "Esto tiene, por lo menos, 3 días.",
-        "O sea, chao.",
-        "Gilipollas tú, gilipollas tú y gilipollas tú.",
-        "Perdona, ¿eres tonto?",
-        "Mmmmmu tonnnto...",
+        'Esto tiene, por lo menos, 3 días.',
+        'O sea, chao.',
+        'Gilipollas tú, gilipollas tú y gilipollas tú.',
+        'Perdona, ¿eres tonto?',
+        'Mmmmmu tonnnto...',
+        '¡Me estáis poniendo de una mala hostia...!',
     ]
 
     def transform(self):
@@ -104,7 +108,7 @@ def message_factory(message, probability=None):
         return RajoyMessage(message)
     if any(x in message.lower() for x in ['zapatero', 'zp']):
         return ZapateroMessage(message)
-    if any(x in message.lower() for x in ['niño', 'niña', 'hijo', 'hija', 'papá', 'papi']):
+    if any(x in message.lower() for x in KIDS_ALERT):
         return KidsAlertMessage()
     if 'digi' in message.lower():
         return DigiMessage(message)
@@ -129,7 +133,7 @@ class MessageHandlerFactory(MessageHandler):
         self.daily_counter[today]['messages'] += 1
         if self.daily_counter[today].get('messages') == self.daily_counter[today].get('alert_when'):
             bot: Bot = context.bot
-            messages_count = self.daily_counter[today].get("messages")
+            messages_count = self.daily_counter[today].get('messages')
             bot.send_message(
                 chat_id=update.effective_chat.id,
                 text=f'¡La virgen, lo que escribís! {messages_count} mensajes',

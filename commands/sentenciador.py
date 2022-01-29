@@ -6,7 +6,7 @@ from messages.messages import PunishmentMessage
 
 
 class PunisherCommandHandler(BaseCommandHandler):
-    COMMAND_NAME = "sentenciador"
+    COMMAND_NAME = 'sentenciador'
 
     def punish(self):
         return PunishmentMessage().transform()
