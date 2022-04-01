@@ -1,4 +1,4 @@
-python-dotenv<0.20
+python-dotenv<0.21
 python-telegram-bot<14
 pytz
 requests<3
