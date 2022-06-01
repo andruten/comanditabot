@@ -2,4 +2,4 @@ python-dotenv<0.20
 python-telegram-bot<14
 pytz
 requests<3
-validators<0.19
+validators<0.20
