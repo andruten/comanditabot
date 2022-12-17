@@ -2,7 +2,8 @@ import pytest
 
 from messages.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from messages.messages import (
-    RajoyMessage, ZapateroMessage, MiMiMiMessage, PunishmentMessage, message_factory, KidsAlertMessage
+    RajoyMessage, ZapateroMessage, MiMiMiMessage, PunishmentMessage, message_factory, KidsAlertMessage,
+    BrokenGroupMessage
 )
 
 
@@ -40,6 +41,13 @@ def test_kids_alert_message():
     assert transformed_message == '🚨🚨 Kids Alert! 🚨🚨'
 
 
+def test_message_broken_group():
+    broken_group_handler = BrokenGroupMessage()
+    assert broken_group_handler.reply is True
+    transformed_message = broken_group_handler.transform()
+    assert transformed_message == 'Anda que avisas... El grupo está roto.'
+
+
 @pytest.mark.parametrize(
     'message,message_class',
     [
@@ -47,6 +55,8 @@ def test_kids_alert_message():
         ('Esta es la españa que nos deja zapatero', ZapateroMessage),
         ('https://google.com', PunishmentMessage),
         ('Probando, probando', MiMiMiMessage),
+        ('El otro día estuve en casa de mi tía', BrokenGroupMessage),
+        ('El otro día fui a casa de mi tía', BrokenGroupMessage),
     ],
 )
 def test_message_factory(message, message_class):
