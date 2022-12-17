@@ -56,6 +56,13 @@ class KidsAlertMessage(Message):
         return '🚨🚨 Kids Alert! 🚨🚨'
 
 
+class BrokenGroupMessage(Message):
+    reply = True
+
+    def transform(self):
+        return 'Anda que avisas... El grupo está roto.'
+
+
 class MiMiMiMessage(Message):
     reply = True
     REPLACES = (
@@ -106,6 +113,8 @@ def message_factory(message, probability=None):
         return ZapateroMessage(message)
     if any(x in message.lower() for x in ['niño', 'niña', 'hijo', 'hija', 'papá', 'papi']):
         return KidsAlertMessage()
+    if any(x in message.lower() for x in ['estuve en', 'fui a']):
+        return BrokenGroupMessage()
     if 'digi' in message.lower():
         return DigiMessage(message)
     if not probability:
