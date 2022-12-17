@@ -1,4 +1,4 @@
-FROM python:3.9-slim-buster
+FROM python:3.10-slim-bullseye
 
 RUN mkdir /app \
     && addgroup --gid 4000 apprunner \
@@ -19,12 +19,6 @@ ARG REQS_FILE
 RUN pip install -r /app/requirements/${REQS_FILE:-"requirements.txt"}
 
 # Copy code
-COPY ./comandita.py /app/
-COPY ./commands/ /app/commands/
-COPY ./messages/ /app/messages/
-COPY ./clients/ /app/clients/
-COPY ./tests/ /app/tests/
-COPY pytest.ini /app/
-COPY .coveragerc /app/
+COPY . .
 
 CMD python comandita.py
