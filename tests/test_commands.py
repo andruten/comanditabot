@@ -13,7 +13,7 @@ from commands import (
 
 
 # mimimi
-from messages.messages import PunishmentMessage
+from handlers.messages import PunishmentMessage
 
 
 @pytest.fixture

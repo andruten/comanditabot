@@ -1,7 +1,7 @@
 import pytest
 
-from messages.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
-from messages.messages import (
+from handlers.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
+from handlers.messages import (
     RajoyMessage, ZapateroMessage, MiMiMiMessage, PunishmentMessage, message_factory, KidsAlertMessage,
     BrokenGroupMessage
 )
