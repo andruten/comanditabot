@@ -4,8 +4,6 @@ from telegram import Update, ParseMode, constants
 from telegram.ext import MessageHandler, Filters, CallbackContext
 
 from transcriber.audio_message_processor import AudioMessageTranscriberMixin
-from transcriber.telegram_file_manager import TelegramAudioManager
-from transcriber.transcriber import audio_transcriber
 
 logger = logging.getLogger(__name__)
 
