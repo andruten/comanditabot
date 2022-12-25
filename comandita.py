@@ -10,9 +10,11 @@ from commands import (
     PunisherCommandHandler,
     StarCommandHandler,
     WeatherInKoreaCommandHandler,
+    TranscriberCommandHandler,
 )
-from messages import (
-    MessageHandlerFactory
+from handlers import (
+    MessageHandlerFactory,
+    AudioHandlerFactory,
 )
 
 load_dotenv()
@@ -32,9 +34,11 @@ def main():
     dispatcher.add_handler(PunisherCommandHandler())
     dispatcher.add_handler(StarCommandHandler())
     dispatcher.add_handler(WeatherInKoreaCommandHandler())
+    dispatcher.add_handler(TranscriberCommandHandler())
 
     # on non command i.e message - echo the message on Telegram
     dispatcher.add_handler(MessageHandlerFactory())
+    dispatcher.add_handler(AudioHandlerFactory())
 
     updater.start_polling()
     updater.idle()

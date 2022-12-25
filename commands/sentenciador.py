@@ -2,7 +2,7 @@ from telegram import Update, Bot
 from telegram.ext import CallbackContext
 
 from commands.base import BaseCommandHandler
-from messages.messages import PunishmentMessage
+from handlers.messages import PunishmentMessage
 
 
 class PunisherCommandHandler(BaseCommandHandler):

@@ -4,7 +4,7 @@ from telegram.ext.callbackcontext import CallbackContext
 from telegram.bot import Bot
 
 from commands.base import BaseCommandHandler
-from messages.messages import MiMiMiMessage
+from handlers.messages import MiMiMiMessage
 
 
 class MiMiMiCommandHandler(BaseCommandHandler):
