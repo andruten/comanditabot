@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bullseye
+FROM python:3.9-slim-bullseye
 
 RUN apt update -qqq && apt install \
       --no-install-recommends --no-install-suggests -y -qqq \
