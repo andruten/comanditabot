@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bullseye
+FROM python:3.11-slim-bullseye
 
 RUN mkdir /app \
     && addgroup --gid 4000 apprunner \
@@ -21,4 +21,4 @@ RUN pip install -r /app/requirements/${requirements:-"pro"}.txt
 # Copy code
 COPY . .
 
-CMD python - m comandita
+CMD python -m comandita

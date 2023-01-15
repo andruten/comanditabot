@@ -11,7 +11,11 @@ jobs:
   pro-deployment:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - name: Run tests
+        run: make test
+
       - name: Setup SSH
         uses: shimataro/ssh-key-action@v2
         with:
@@ -31,7 +35,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
-            docker build . -t comanditabot:latest
+            make build
             docker stop comanditabot
             docker rm -f comanditabot
-            docker run -d --name comanditabot --restart on-failure:3 --env-file .env comanditabot:latest
+            make run_detached
