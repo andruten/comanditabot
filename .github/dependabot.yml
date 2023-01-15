@@ -1,8 +1,8 @@
 version: 2
 updates:
 - package-ecosystem: pip
-  directory: "/"
+  directory: "/requirements"
   schedule:
-    interval: monthly
+    interval: weekly
     time: "11:00"
   open-pull-requests-limit: 10

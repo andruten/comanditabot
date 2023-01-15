@@ -1,69 +1,129 @@
-from abc import ABCMeta, abstractmethod
-from datetime import datetime
-from random import random, choice, randint
 import re
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from datetime import datetime
+from random import choice, randint, random
+from typing import List
 
 import validators
-from telegram import Update, Bot
-from telegram.ext import MessageHandler, Filters, CallbackContext
+from telegram import Bot, Update
+from telegram.ext import CallbackContext, Filters, MessageHandler
 
 from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
 
 
-class Message(metaclass=ABCMeta):
+class Message(ABC):
     reply = False
+    probability = 100
 
-    def __init__(self, message=None, probability=100) -> None:
+    def __init__(self, message=None, probability=None) -> None:
         super().__init__()
         self.message = message
-        self.probability = probability
-        self._shall_i_send_it()
+        self.probability = probability if probability else self.probability
+        self.shall_i_send_it()
 
-    def _shall_i_send_it(self):
+    def shall_i_send_it(self) -> bool:
         # Only response with a PROBABILITY
-        if random() > (self.probability / 100):
-            raise DoNothingException()
-        return True
+        return random() < (self.probability / 100)
 
     @abstractmethod
-    def transform(self):
+    def transform(self) -> str:
+        pass
+
+    @abstractmethod
+    def trigger(self) -> bool:
         pass
 
 
+@dataclass
+class Registry:
+    code: str
+    message_class: Message
+
+
+class MessageRegistry:
+
+    @classmethod
+    def register(cls, code: str, priority: int = 1):
+        def wrapper(registry: Message):
+            registries = cls.get_registries()
+            registries.insert(priority, Registry(code=code, message_class=registry))
+            setattr(cls, '__registries', registries)
+            return registry
+
+        return wrapper
+
+    @classmethod
+    def get_registries(cls) -> List[Registry]:
+        registries = getattr(cls, '__registries', list())
+        return registries
+
+    @classmethod
+    def process_message(cls, message: str) -> Message:
+        registry: Registry
+        for registry in cls.get_registries():
+            registry: Message = registry.message_class(message)
+            if registry.trigger() and registry.shall_i_send_it():
+                return registry
+        raise DoNothingException()
+
+
+@MessageRegistry.register('digi', priority=5)
 class DigiMessage(Message):
 
     def transform(self):
-        return "Woof! Woof!"
+        return 'Woof! Woof!'
+
+    def trigger(self) -> bool:
+        return 'digi' in self.message.lower()
 
 
+@MessageRegistry.register('rajoy', priority=1)
 class RajoyMessage(Message):
 
     def transform(self):
         return choice(RAJOY_PHRASES)
 
+    def trigger(self) -> bool:
+        return any(x in self.message.lower() for x in ['brey', 'rajoy', 'mariano'])
 
+
+@MessageRegistry.register('zapatero', priority=2)
 class ZapateroMessage(Message):
 
     def transform(self):
         return choice(ZAPATERO_PHRASES)
 
+    def trigger(self) -> bool:
+        return any(x in self.message.lower() for x in ['zapatero', 'zp'])
 
+
+@MessageRegistry.register('kids_alert', priority=3)
 class KidsAlertMessage(Message):
     reply = True
 
     def transform(self):
         return '🚨🚨 Kids Alert! 🚨🚨'
 
+    def trigger(self) -> bool:
+        return any(x in self.message.lower() for x in ['niño', 'niña', 'hijo', 'hija', 'papá', 'papi'])
 
+
+@MessageRegistry.register('broken_group', priority=4)
 class BrokenGroupMessage(Message):
     reply = True
 
     def transform(self):
         return 'Anda que avisas... El grupo está roto.'
 
+    def trigger(self) -> bool:
+        return any(x in self.message.lower() for x in ['estuve en', 'fui a'])
 
+
+@MessageRegistry.register('mimimi', priority=6)
 class MiMiMiMessage(Message):
+    probability = 1
     reply = True
     REPLACES = (
         ('[aeou]', 'i'),
@@ -87,39 +147,27 @@ class MiMiMiMessage(Message):
     def transform(self):
         return self._do_mimimi()
 
+    def trigger(self) -> bool:
+        return True
 
+
+@MessageRegistry.register('punishment', priority=0)
 class PunishmentMessage(Message):
+    probability = 10
     reply = True
     PUNISHMENTS = [
-        "Esto tiene, por lo menos, 3 días.",
-        "O sea, chao.",
-        "Gilipollas tú, gilipollas tú y gilipollas tú.",
-        "Perdona, ¿eres tonto?",
-        "Mmmmmu tonnnto...",
+        'Esto tiene, por lo menos, 3 días.',
+        'O sea, chao.',
+        'Gilipollas tú, gilipollas tú y gilipollas tú.',
+        'Perdona, ¿eres tonto?',
+        'Mmmmmu tonnnto...',
     ]
 
     def transform(self):
         return choice(self.PUNISHMENTS)
 
-
-def message_factory(message, probability=None):
-    if validators.url(message):
-        if not probability:
-            probability = 10
-        return PunishmentMessage(message, probability=probability)
-    if any(x in message.lower() for x in ['brey', 'rajoy', 'mariano']):
-        return RajoyMessage(message)
-    if any(x in message.lower() for x in ['zapatero', 'zp']):
-        return ZapateroMessage(message)
-    if any(x in message.lower() for x in ['niño', 'niña', 'hijo', 'hija', 'papá', 'papi']):
-        return KidsAlertMessage()
-    if any(x in message.lower() for x in ['estuve en', 'fui a']):
-        return BrokenGroupMessage()
-    if 'digi' in message.lower():
-        return DigiMessage(message)
-    if not probability:
-        probability = 1
-    return MiMiMiMessage(message, probability=probability)
+    def trigger(self) -> bool:
+        return validators.url(self.message)
 
 
 class MessageHandlerFactory(MessageHandler):
@@ -138,7 +186,7 @@ class MessageHandlerFactory(MessageHandler):
         self.daily_counter[today]['messages'] += 1
         if self.daily_counter[today].get('messages') == self.daily_counter[today].get('alert_when'):
             bot: Bot = context.bot
-            messages_count = self.daily_counter[today].get("messages")
+            messages_count = self.daily_counter[today].get('messages')
             bot.send_message(
                 chat_id=update.effective_chat.id,
                 text=f'¡La virgen, lo que escribís! {messages_count} mensajes',
@@ -147,7 +195,7 @@ class MessageHandlerFactory(MessageHandler):
     def process(self, update: Update, context: CallbackContext):
         self.grumpy_digi(update, context)
         try:
-            message_class = message_factory(update.message.text)
+            message_class = MessageRegistry.process_message(update.message.text)
         except DoNothingException:
             pass
         else:
