@@ -1,34 +1,53 @@
 # Comandita bot
-Welcome to Comandita bot 👋. It works with docker :).
+Welcome to Comandita bot 👋. I run with docker :).
 
 
-## Build
+## Available commands
 
-### With development dependencies
+### MiMiMi
 ```
-make build_dev
-```
-
-### With production dependencies
-```
-make build
+/mimimi
 ```
 
-
-## Run
-
-### With development dependencies
+### Weather in Korea
 ```
-make run_dev
+/tiempoencorea
 ```
 
-### With production dependencies
+### Save a message
 ```
-make run
+/star
+```
+
+### Punish a message
+```
+/sentenciador
 ```
 
 
-## Tests
+## Build, run and test
+
+#### Build bot with development dependencies
+```
+$ make build_dev
+```
+
+#### Build bot with production dependencies
+```
+$ make build
+```
+
+#### Start bot with development dependencies
+```
+$ make run_dev
+```
+
+#### Start bot with production dependencies
+```
+$ make run
+```
+
+#### Running Tests
 ```
 $ make test
 ```
