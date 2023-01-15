@@ -15,10 +15,10 @@ WORKDIR /app
 
 ENV PATH="/home/apprunner/.local/bin:${PATH}"
 COPY ./requirements/ /app/requirements/
-ARG REQS_FILE
-RUN pip install -r /app/requirements/${REQS_FILE:-"requirements.txt"}
+ARG requirements
+RUN pip install -r /app/requirements/${requirements:-"pro"}.txt
 
 # Copy code
 COPY . .
 
-CMD python comandita.py
+CMD python - m comandita
