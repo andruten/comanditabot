@@ -1,3 +1,5 @@
+DOCKER := docker
+
 .PHONY:
 
 check_env:
@@ -6,26 +8,22 @@ ifeq ("$(wildcard .env)","")
 endif
 
 run: check_env build
-	docker run --rm --env-file .env -ti comanditabot:production
+	@$(DOCKER) run --rm --env-file .env -ti comanditabot:latest
 
 run_detached: check_env build
-	docker run --rm -d --restart on-failure:3 --env-file .env -ti comanditabot:production
+	@$(DOCKER) run --rm -d --restart on-failure:3 --env-file .env -ti comanditabot:latest
 
 run_dev: check_env build_dev
-	docker run --rm --env-file .env -ti comanditabot:development
+	@$(DOCKER) run --rm --env-file .env -ti comanditabot:latest
 
 build:
-	docker build . -t comanditabot:production
+	@$(DOCKER) build . -t comanditabot:latest
 
 build_dev: check_env
-	docker build --build-arg REQS_FILE=dev-requirements.txt . -t comanditabot:development
-
-push:
-	docker build -t andruten/comanditabot:production .
-	docker push andruten/comanditabot:production
+	@$(DOCKER) build --build-arg requirements=dev . -t comanditabot:latest
 
 bash: check_env build_dev
-	docker run --rm --env-file .env -ti comanditabot:development bash
+	@$(DOCKER) run --rm --env-file .env -ti comanditabot:latest bash
 
 test: check_env build_dev
-	docker run --rm --env-file .env -ti comanditabot:development python -m pytest .
+	@$(DOCKER) run --rm --env-file .env -ti comanditabot:latest python -m pytest .
