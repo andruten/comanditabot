@@ -1,10 +1,10 @@
 import pytest
 
 from messages.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
-from messages.messages import (
-    RajoyMessage, ZapateroMessage, MiMiMiMessage, PunishmentMessage, message_factory, KidsAlertMessage,
-    BrokenGroupMessage
-)
+from messages.messages import (BrokenGroupMessage, KidsAlertMessage,
+                               MessageRegistry, MiMiMiMessage,
+                               PunishmentMessage, RajoyMessage,
+                               ZapateroMessage)
 
 
 def test_rajoy_message():
@@ -60,5 +60,6 @@ def test_message_broken_group():
     ],
 )
 def test_message_factory(message, message_class):
-    message_instance = message_factory(message, probability=100)
+    message_class.probability = 100
+    message_instance = MessageRegistry.process_message(message)
     assert isinstance(message_instance, message_class)
