@@ -38,4 +38,4 @@ jobs:
             make build
             docker stop comanditabot
             docker rm -f comanditabot
-            make run
+            make run_detached

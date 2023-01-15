@@ -8,10 +8,10 @@ ifeq ("$(wildcard .env)","")
 endif
 
 run: check_env build
-	@$(DOCKER) run -d --name comanditabot --restart on-failure:3 --env-file .env comanditabot:latest
+	@$(DOCKER) run --name comanditabot --restart on-failure:3 --env-file .env comanditabot:latest
 
 run_detached: check_env build
-	@$(DOCKER) run --rm -d --restart on-failure:3 --env-file .env -ti comanditabot:latest
+	@$(DOCKER) run --rm -d --name comanditabot --restart on-failure:3 --env-file .env -ti comanditabot:latest
 
 run_dev: check_env build_dev
 	@$(DOCKER) run --rm --env-file .env -ti comanditabot:latest
