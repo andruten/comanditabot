@@ -1,15 +1,15 @@
-from telegram import Update, Bot
+from telegram import Bot, Update
 from telegram.ext import CallbackContext
 
 from commands.base import BaseCommandHandler
-from messages.messages import PunishmentMessage
+from reactions.reactions import PunishmentReaction
 
 
 class PunisherCommandHandler(BaseCommandHandler):
-    COMMAND_NAME = "sentenciador"
+    COMMAND_NAME = 'sentenciador'
 
     def punish(self):
-        return PunishmentMessage().transform()
+        return PunishmentReaction().transform()
 
     def process(self, update: Update, context: CallbackContext):
         bot: Bot = context.bot

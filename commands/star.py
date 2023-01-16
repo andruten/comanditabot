@@ -1,4 +1,4 @@
-from telegram import Update, Bot
+from telegram import Bot, Update
 from telegram.error import Unauthorized
 from telegram.ext import CallbackContext
 
@@ -6,7 +6,7 @@ from commands.base import BaseCommandHandler
 
 
 class StarCommandHandler(BaseCommandHandler):
-    COMMAND_NAME = "star"
+    COMMAND_NAME = 'star'
 
     def process(self, update: Update, context: CallbackContext):
         bot: Bot = context.bot
@@ -18,12 +18,12 @@ class StarCommandHandler(BaseCommandHandler):
         except Unauthorized:
             bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="Antes de poder enviarte mensajes "
-                     "tienes que iniciar una conversación "
-                     "conmigo en https://t.me/comandita_bot",
+                text='Antes de poder enviarte mensajes '
+                     'tienes que iniciar una conversación '
+                     'conmigo en https://t.me/comandita_bot',
             )
         except AttributeError:
             bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="Cita un mensaje que quieras guardar ⭐️",
+                text='Cita un mensaje que quieras guardar ⭐️',
             )
