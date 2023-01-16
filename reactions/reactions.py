@@ -13,7 +13,7 @@ from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
 
 
-class Message(ABC):
+class Reaction(ABC):
     reply = False
     probability = 100
 
@@ -39,16 +39,16 @@ class Message(ABC):
 @dataclass
 class Registry:
     code: str
-    message_class: Message
+    reaction_class: Reaction
 
 
-class MessageRegistry:
+class ReactionRegistry:
 
     @classmethod
     def register(cls, code: str, priority: int = 1):
-        def wrapper(registry: Message):
+        def wrapper(registry: Reaction):
             registries = cls.get_registries()
-            registries.insert(priority, Registry(code=code, message_class=registry))
+            registries.insert(priority, Registry(code=code, reaction_class=registry))
             setattr(cls, '__registries', registries)
             return registry
 
@@ -60,17 +60,17 @@ class MessageRegistry:
         return registries
 
     @classmethod
-    def process_message(cls, message: str) -> Message:
+    def process_message(cls, message: str) -> Reaction:
         registry: Registry
         for registry in cls.get_registries():
-            registry: Message = registry.message_class(message)
+            registry: Reaction = registry.reaction_class(message)
             if registry.trigger() and registry.shall_i_send_it():
                 return registry
         raise DoNothingException()
 
 
-@MessageRegistry.register('digi', priority=5)
-class DigiMessage(Message):
+@ReactionRegistry.register('digi', priority=5)
+class DigiReaction(Reaction):
 
     def transform(self):
         return 'Woof! Woof!'
@@ -79,8 +79,8 @@ class DigiMessage(Message):
         return 'digi' in self.message.lower()
 
 
-@MessageRegistry.register('rajoy', priority=1)
-class RajoyMessage(Message):
+@ReactionRegistry.register('rajoy', priority=1)
+class RajoyReaction(Reaction):
 
     def transform(self):
         return choice(RAJOY_PHRASES)
@@ -89,8 +89,8 @@ class RajoyMessage(Message):
         return any(x in self.message.lower() for x in ['brey', 'rajoy', 'mariano'])
 
 
-@MessageRegistry.register('zapatero', priority=2)
-class ZapateroMessage(Message):
+@ReactionRegistry.register('zapatero', priority=2)
+class ZapateroReaction(Reaction):
 
     def transform(self):
         return choice(ZAPATERO_PHRASES)
@@ -99,8 +99,8 @@ class ZapateroMessage(Message):
         return any(x in self.message.lower() for x in ['zapatero', 'zp'])
 
 
-@MessageRegistry.register('kids_alert', priority=3)
-class KidsAlertMessage(Message):
+@ReactionRegistry.register('kids_alert', priority=3)
+class KidsAlertReaction(Reaction):
     reply = True
 
     def transform(self):
@@ -110,8 +110,8 @@ class KidsAlertMessage(Message):
         return any(x in self.message.lower() for x in ['niño', 'niña', 'hijo', 'hija', 'papá', 'papi'])
 
 
-@MessageRegistry.register('broken_group', priority=4)
-class BrokenGroupMessage(Message):
+@ReactionRegistry.register('broken_group', priority=4)
+class BrokenGroupReaction(Reaction):
     reply = True
 
     def transform(self):
@@ -121,8 +121,8 @@ class BrokenGroupMessage(Message):
         return any(x in self.message.lower() for x in ['estuve en', 'fui a'])
 
 
-@MessageRegistry.register('mimimi', priority=6)
-class MiMiMiMessage(Message):
+@ReactionRegistry.register('mimimi', priority=6)
+class MiMiMiReaction(Reaction):
     probability = 1
     reply = True
     REPLACES = (
@@ -151,8 +151,8 @@ class MiMiMiMessage(Message):
         return True
 
 
-@MessageRegistry.register('punishment', priority=0)
-class PunishmentMessage(Message):
+@ReactionRegistry.register('punishment', priority=0)
+class PunishmentReaction(Reaction):
     probability = 10
     reply = True
     PUNISHMENTS = [
@@ -195,7 +195,7 @@ class MessageHandlerFactory(MessageHandler):
     def process(self, update: Update, context: CallbackContext):
         self.grumpy_digi(update, context)
         try:
-            message_class = MessageRegistry.process_message(update.message.text)
+            message_class = ReactionRegistry.process_message(update.message.text)
         except DoNothingException:
             pass
         else:

@@ -1,14 +1,14 @@
 from telegram import ParseMode
-from telegram.update import Update
-from telegram.ext.callbackcontext import CallbackContext
 from telegram.bot import Bot
+from telegram.ext.callbackcontext import CallbackContext
+from telegram.update import Update
 
 from commands.base import BaseCommandHandler
-from messages.messages import MiMiMiMessage
+from reactions.reactions import MiMiMiReaction
 
 
 class MiMiMiCommandHandler(BaseCommandHandler):
-    COMMAND_NAME = "mimimi"
+    COMMAND_NAME = 'mimimi'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,7 +27,7 @@ class MiMiMiCommandHandler(BaseCommandHandler):
                 return
             self.mimimis[text] = update.message.reply_to_message.text
         except AttributeError:
-            text = "No puedo hacer mimimi sin citar un mensaje... 😢"
+            text = 'No puedo hacer mimimi sin citar un mensaje... 😢'
         # "store" the translated value for joking purposes
         bot.send_message(
             chat_id=update.effective_chat.id,
@@ -35,4 +35,4 @@ class MiMiMiCommandHandler(BaseCommandHandler):
         )
 
     def do_mimimi(self, text):
-        return MiMiMiMessage(text, probability=100).transform()
+        return MiMiMiReaction(text, probability=100).transform()
