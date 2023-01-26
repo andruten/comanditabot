@@ -1,5 +1,5 @@
-from .reactions import MessageHandlerFactory
+from .reactions import ReactionHandlerFactory
 
 __all__ = [
-    'MessageHandlerFactory',
+    'ReactionHandlerFactory',
 ]

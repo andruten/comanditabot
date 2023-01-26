@@ -5,9 +5,10 @@ from dotenv import load_dotenv
 from telegram.ext.dispatcher import Dispatcher
 from telegram.ext.updater import Updater
 
+from chat_statistics import ChatStatisticsMessageHandlerFactory
 from commands import (MiMiMiCommandHandler, PunisherCommandHandler,
                       StarCommandHandler, WeatherInKoreaCommandHandler)
-from reactions import MessageHandlerFactory
+from reactions import ReactionHandlerFactory
 
 load_dotenv()
 
@@ -22,13 +23,15 @@ def main():
         use_context=True,
     )
     dispatcher: Dispatcher = updater.dispatcher
+    # Commands
     dispatcher.add_handler(MiMiMiCommandHandler())
     dispatcher.add_handler(PunisherCommandHandler())
     dispatcher.add_handler(StarCommandHandler())
     dispatcher.add_handler(WeatherInKoreaCommandHandler())
 
-    # on non command i.e message - echo the message on Telegram
-    dispatcher.add_handler(MessageHandlerFactory())
+    # Messages
+    dispatcher.add_handler(ReactionHandlerFactory())
+    dispatcher.add_handler(ChatStatisticsMessageHandlerFactory(), group=1)
 
     updater.start_polling()
     updater.idle()
