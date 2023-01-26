@@ -1,4 +1,3 @@
-import logging
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -12,8 +11,6 @@ from telegram.ext import CallbackContext, Filters, MessageHandler
 
 from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
-
-logger = logging.getLogger(__name__)
 
 
 class Reaction(ABC):
