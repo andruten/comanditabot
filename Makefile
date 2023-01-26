@@ -14,7 +14,7 @@ run_detached: check_env build
 	@$(DOCKER) run -d --name comanditabot --restart on-failure:3 --env-file .env -ti comanditabot:latest
 
 run_dev: check_env build_dev
-	@$(DOCKER) run --rm --env-file .env -ti comanditabot:latest
+	@$(DOCKER) run --rm --env-file .env -v $(pwd):/opt/app -ti comanditabot:latest
 
 build:
 	@$(DOCKER) build . -t comanditabot:latest
@@ -23,7 +23,7 @@ build_dev: check_env
 	@$(DOCKER) build --build-arg requirements=dev . -t comanditabot:latest
 
 bash: check_env build_dev
-	@$(DOCKER) run --rm --env-file .env -ti comanditabot:latest bash
+	@$(DOCKER) run --rm --env-file .env -v $(pwd):/opt/app -ti comanditabot:latest bash
 
 lint: check_env build_dev
 	@$(DOCKER) run --rm --env-file .env comanditabot:latest flake8 .

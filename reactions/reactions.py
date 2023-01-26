@@ -1,8 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
-from random import choice, randint, random
+from random import choice, random
 from typing import List
 
 import validators
@@ -170,30 +169,12 @@ class PunishmentReaction(Reaction):
         return validators.url(self.message)
 
 
-class MessageHandlerFactory(MessageHandler):
+class ReactionHandlerFactory(MessageHandler):
 
     def __init__(self, *args, **kwargs):
         super().__init__(Filters.text & ~Filters.command, self.process, *args, **kwargs)
-        self.daily_counter = {}
-
-    def grumpy_digi(self, update: Update, context: CallbackContext):
-        today = datetime.utcnow().today().strftime('%Y-%m-%d')
-        if today not in self.daily_counter:
-            self.daily_counter[today] = {
-                'messages': 0,
-                'alert_when': randint(200, 300)
-            }
-        self.daily_counter[today]['messages'] += 1
-        if self.daily_counter[today].get('messages') == self.daily_counter[today].get('alert_when'):
-            bot: Bot = context.bot
-            messages_count = self.daily_counter[today].get('messages')
-            bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f'¡La virgen, lo que escribís! {messages_count} mensajes',
-            )
 
     def process(self, update: Update, context: CallbackContext):
-        self.grumpy_digi(update, context)
         try:
             message_class = ReactionRegistry.process_message(update.effective_message.text)
         except DoNothingException:
