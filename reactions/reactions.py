@@ -1,3 +1,4 @@
+import logging
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -11,6 +12,8 @@ from telegram.ext import CallbackContext, Filters, MessageHandler
 
 from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
+
+logger = logging.getLogger(__name__)
 
 
 class Reaction(ABC):
@@ -195,7 +198,7 @@ class MessageHandlerFactory(MessageHandler):
     def process(self, update: Update, context: CallbackContext):
         self.grumpy_digi(update, context)
         try:
-            message_class = ReactionRegistry.process_message(update.message.text)
+            message_class = ReactionRegistry.process_message(update.effective_message.text)
         except DoNothingException:
             pass
         else:
