@@ -1,9 +1,11 @@
 FROM python:3.11-slim-bullseye
 
-RUN mkdir /app \
+RUN mkdir /opt/app \
+    && mkdir /opt/requirements \
     && addgroup --gid 4000 apprunner \
     && adduser --system --disabled-password --disabled-login --gecos "" --gid 4000 --uid 4000 apprunner \
-    && chown -R apprunner:apprunner /app \
+    && chown -R apprunner:apprunner /opt/app \
+    && chown -R apprunner:apprunner /opt/requirements \
     && chsh -s /bin/false apprunner
 
 # Requirements
@@ -11,12 +13,12 @@ RUN pip install --upgrade pip
 
 USER apprunner
 
-WORKDIR /app
+WORKDIR /opt/app
 
 ENV PATH="/home/apprunner/.local/bin:${PATH}"
-COPY ./requirements/ /app/requirements/
+COPY ./requirements/ /opt/requirements/
 ARG requirements
-RUN pip install -r /app/requirements/${requirements:-"pro"}.txt
+RUN pip install -r /opt/requirements/${requirements:-"pro"}.txt
 
 # Copy code
 COPY . .

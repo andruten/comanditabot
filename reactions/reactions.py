@@ -195,7 +195,7 @@ class MessageHandlerFactory(MessageHandler):
     def process(self, update: Update, context: CallbackContext):
         self.grumpy_digi(update, context)
         try:
-            message_class = ReactionRegistry.process_message(update.message.text)
+            message_class = ReactionRegistry.process_message(update.effective_message.text)
         except DoNothingException:
             pass
         else:
