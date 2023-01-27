@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest  # noqa
 from freezegun import freeze_time
 
@@ -28,6 +30,7 @@ def test_get_counter_key():
 def test_update_daily():
     chat_id = 1
     chat_statistics = ChatStatistics(chat_id)
-    chat_statistics.update_daily()
+    message = MagicMock()
+    chat_statistics.update_daily(message)
     daily_statistics = chat_statistics.get_daily_statistics()
     assert daily_statistics.messages_count == 1

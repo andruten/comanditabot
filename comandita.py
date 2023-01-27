@@ -6,8 +6,8 @@ from telegram.ext.dispatcher import Dispatcher
 from telegram.ext.updater import Updater
 
 from chat_statistics import ChatStatisticsMessageHandlerFactory
-from commands import (MiMiMiCommandHandler, PunisherCommandHandler,
-                      StarCommandHandler, WeatherInKoreaCommandHandler)
+from commands import MiMiMiCommandHandler, PunisherCommandHandler, StarCommandHandler, WeatherInKoreaCommandHandler
+from commands.chat_statistics import ChatStatisticsCommandHandler
 from reactions import ReactionHandlerFactory
 
 load_dotenv()
@@ -28,6 +28,7 @@ def main():
     dispatcher.add_handler(PunisherCommandHandler())
     dispatcher.add_handler(StarCommandHandler())
     dispatcher.add_handler(WeatherInKoreaCommandHandler())
+    dispatcher.add_handler(ChatStatisticsCommandHandler())
 
     # Messages
     dispatcher.add_handler(ReactionHandlerFactory())

@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from random import randint
 
-from telegram import Bot, Update
+from telegram import Bot, Message, Update
 from telegram.ext import CallbackContext, Filters, MessageHandler
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,10 @@ class SingletonMeta(type):
 @dataclass
 class DailyStatistics:
     messages_count: int = 0
+    photos_count: int = 0
+    audios_count: int = 0
+    videos_count: int = 0
+    voices_count: int = 0
     alert_when: int = field(init=False)
 
     def __post_init__(self):
@@ -48,9 +52,15 @@ class ChatStatistics(metaclass=SingletonMeta):
         today = datetime.utcnow().today().strftime('%Y-%m-%d')
         return self._daily_counter[self.chat_id][today]
 
-    def update_daily(self) -> None:
+    def update_daily(self, message: Message) -> None:
         daily_statistics = self.get_daily_statistics()
         daily_statistics.messages_count += 1
+        if message.photo:
+            daily_statistics.photos_count += 1
+        elif message.video:
+            daily_statistics.videos_count += 1
+        elif message.voice:
+            daily_statistics.voices_count += 1
 
 
 class ChatStatisticsMessageHandlerFactory(MessageHandler):
@@ -61,8 +71,9 @@ class ChatStatisticsMessageHandlerFactory(MessageHandler):
     def process(self, update: Update, context: CallbackContext):
         chat_id = update.effective_chat.id
         chat_statistics = ChatStatistics(chat_id)
-        chat_statistics.update_daily()
+        chat_statistics.update_daily(update.effective_message)
         daily_statistics = chat_statistics.get_daily_statistics()
+        logger.info(f'{daily_statistics.messages_count} messages today in chat "{chat_id}"')
         if daily_statistics.threshold_reached:
             bot: Bot = context.bot
             bot.send_message(
