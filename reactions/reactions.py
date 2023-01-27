@@ -1,11 +1,12 @@
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from random import choice, random
+from random import choice, randint, random
+from time import sleep
 from typing import List
 
 import validators
-from telegram import Bot, Update
+from telegram import Bot, ChatAction, Update
 from telegram.ext import CallbackContext, Filters, MessageHandler
 
 from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
@@ -180,9 +181,15 @@ class ReactionHandlerFactory(MessageHandler):
         except DoNothingException:
             pass
         else:
+            context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+            sleep(randint(1, 3))
             text = message_class.transform()
             if message_class.reply:
                 # Reply to message
+                context.bot.send_chat_action(
+                    chat_id=update.effective_chat.id,
+                    action=ChatAction.TYPING,
+                )
                 update.message.reply_text(text)
             else:
                 bot: Bot = context.bot

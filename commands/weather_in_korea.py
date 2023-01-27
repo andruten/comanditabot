@@ -2,7 +2,7 @@ from datetime import datetime
 from time import sleep
 
 from pytz import timezone
-from telegram import Update
+from telegram import ChatAction, Update
 from telegram.bot import Bot
 from telegram.ext import CallbackContext
 
@@ -15,12 +15,16 @@ class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
     COMMAND_NAME = 'tiempoencorea'
 
     def process(self, update: Update, context: CallbackContext):
+        context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        sleep(1)
         bot: Bot = context.bot
         if self.is_korea_sleeping():
             bot.send_message(
                 chat_id=update.effective_chat.id,
                 text='Dormida... 😡'
             )
+            sleep(1)
+            context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
             sleep(2)
         try:
             weather_data = self.get_weather_data('Seoul')

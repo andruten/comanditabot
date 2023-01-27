@@ -1,4 +1,7 @@
-from telegram import Bot, Update
+from random import randint
+from time import sleep
+
+from telegram import Bot, ChatAction, Update
 from telegram.ext import CallbackContext
 
 from commands.base import BaseCommandHandler
@@ -12,6 +15,8 @@ class PunisherCommandHandler(BaseCommandHandler):
         return PunishmentReaction().transform()
 
     def process(self, update: Update, context: CallbackContext):
+        context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        sleep(randint(1, 3))
         bot: Bot = context.bot
         bot.send_message(
             chat_id=update.effective_chat.id,
