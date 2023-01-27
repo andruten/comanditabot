@@ -1,4 +1,7 @@
-from telegram import ParseMode
+from random import randint
+from time import sleep
+
+from telegram import ChatAction, ParseMode
 from telegram.bot import Bot
 from telegram.ext.callbackcontext import CallbackContext
 from telegram.update import Update
@@ -15,6 +18,8 @@ class MiMiMiCommandHandler(BaseCommandHandler):
         self.mimimis = {}
 
     def process(self, update: Update, context: CallbackContext):
+        context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        sleep(randint(1, 3))
         bot: Bot = context.bot
         try:
             text = self.do_mimimi(update.message.reply_to_message.text)

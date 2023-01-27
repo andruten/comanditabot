@@ -1,13 +1,15 @@
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 from datetime import datetime
 from random import randint
 
 from telegram import Bot, Update
 from telegram.ext import CallbackContext, Filters, MessageHandler
 
+logger = logging.getLogger(__name__)
+
 
 class SingletonMeta(type):
-
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
@@ -19,12 +21,15 @@ class SingletonMeta(type):
 
 @dataclass
 class DailyStatistics:
-    messages: int
-    alert_when: int
+    messages_count: int = 0
+    alert_when: int = field(init=False)
+
+    def __post_init__(self):
+        self.alert_when = randint(200, 300)
 
     @property
     def threshold_reached(self) -> bool:
-        return self.messages == self.alert_when
+        return self.messages_count == self.alert_when
 
 
 class ChatStatistics(metaclass=SingletonMeta):
@@ -33,25 +38,19 @@ class ChatStatistics(metaclass=SingletonMeta):
     def __init__(self, chat_id: int) -> None:
         super().__init__()
         self.chat_id = chat_id
-
-    def _get_counter_key(self) -> str:
+        if self.chat_id not in self._daily_counter:
+            self._daily_counter[self.chat_id] = {}
         today = datetime.utcnow().today().strftime('%Y-%m-%d')
-        return f'{self.chat_id}|{today}'
+        if today not in self._daily_counter[self.chat_id]:
+            self._daily_counter[self.chat_id][today] = DailyStatistics()
 
     def get_daily_statistics(self) -> DailyStatistics:
-        counter_key = self._get_counter_key()
-        if counter_key not in self._daily_counter:
-            self._daily_counter[counter_key] = DailyStatistics(messages=0, alert_when=randint(200, 300))
-        return self._daily_counter[counter_key]
+        today = datetime.utcnow().today().strftime('%Y-%m-%d')
+        return self._daily_counter[self.chat_id][today]
 
     def update_daily(self) -> None:
         daily_statistics = self.get_daily_statistics()
-        daily_statistics.messages += 1
-
-    @property
-    def daily_threshold_reached(self) -> bool:
-        daily_statistics = self.get_daily_statistics()
-        return daily_statistics.threshold_reached
+        daily_statistics.messages_count += 1
 
 
 class ChatStatisticsMessageHandlerFactory(MessageHandler):
@@ -68,5 +67,5 @@ class ChatStatisticsMessageHandlerFactory(MessageHandler):
             bot: Bot = context.bot
             bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f'¡La virgen, lo que escribís! {daily_statistics.messages} mensajes 😵‍💫',
+                text=f'¡La virgen, lo que escribís! {daily_statistics.messages_count} mensajes 😵‍💫',
             )
