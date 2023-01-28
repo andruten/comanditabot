@@ -23,6 +23,7 @@ def test_daily_statistics():
 def test_get_counter_key():
     chat_id = 1
     chat_statistics = ChatStatistics(chat_id)
+    chat_statistics.get_daily_statistics()
     assert chat_id in chat_statistics._daily_counter
     assert '2023-01-27' in chat_statistics._daily_counter[chat_id]
 

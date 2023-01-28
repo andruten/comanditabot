@@ -42,14 +42,13 @@ class ChatStatistics(metaclass=SingletonMeta):
     def __init__(self, chat_id: int) -> None:
         super().__init__()
         self.chat_id = chat_id
+
+    def get_daily_statistics(self) -> DailyStatistics:
         if self.chat_id not in self._daily_counter:
             self._daily_counter[self.chat_id] = {}
         today = datetime.utcnow().today().strftime('%Y-%m-%d')
         if today not in self._daily_counter[self.chat_id]:
             self._daily_counter[self.chat_id][today] = DailyStatistics()
-
-    def get_daily_statistics(self) -> DailyStatistics:
-        today = datetime.utcnow().today().strftime('%Y-%m-%d')
         return self._daily_counter[self.chat_id][today]
 
     def update_daily(self, message: Message) -> None:
@@ -57,9 +56,9 @@ class ChatStatistics(metaclass=SingletonMeta):
         daily_statistics.messages_count += 1
         if message.photo:
             daily_statistics.photos_count += 1
-        elif message.video:
+        if message.video:
             daily_statistics.videos_count += 1
-        elif message.voice:
+        if message.voice:
             daily_statistics.voices_count += 1
 
 
