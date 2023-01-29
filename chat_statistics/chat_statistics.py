@@ -39,20 +39,19 @@ class DailyStatistics:
 class ChatStatistics(metaclass=SingletonMeta):
     _daily_counter = {}
 
-    def __init__(self, chat_id: int) -> None:
-        super().__init__()
-        self.chat_id = chat_id
+    def __eq__(self, o: object) -> bool:
+        return id(self) == id(o)
 
-    def get_daily_statistics(self) -> DailyStatistics:
-        if self.chat_id not in self._daily_counter:
-            self._daily_counter[self.chat_id] = {}
+    def get_daily_statistics(self, chat_id: int) -> DailyStatistics:
+        if chat_id not in self._daily_counter:
+            self._daily_counter[chat_id] = {}
         today = datetime.utcnow().today().strftime('%Y-%m-%d')
-        if today not in self._daily_counter[self.chat_id]:
-            self._daily_counter[self.chat_id][today] = DailyStatistics()
-        return self._daily_counter[self.chat_id][today]
+        if today not in self._daily_counter[chat_id]:
+            self._daily_counter[chat_id][today] = DailyStatistics()
+        return self._daily_counter[chat_id][today]
 
-    def update_daily(self, message: Message) -> None:
-        daily_statistics = self.get_daily_statistics()
+    def update_daily(self, message: Message, chat_id: int) -> DailyStatistics:
+        daily_statistics = self.get_daily_statistics(chat_id)
         daily_statistics.messages_count += 1
         if message.photo:
             daily_statistics.photos_count += 1
@@ -60,6 +59,7 @@ class ChatStatistics(metaclass=SingletonMeta):
             daily_statistics.videos_count += 1
         if message.voice:
             daily_statistics.voices_count += 1
+        return daily_statistics
 
 
 class ChatStatisticsMessageHandlerFactory(MessageHandler):
@@ -69,10 +69,8 @@ class ChatStatisticsMessageHandlerFactory(MessageHandler):
 
     def process(self, update: Update, context: CallbackContext):
         chat_id = update.effective_chat.id
-        chat_statistics = ChatStatistics(chat_id)
-        chat_statistics.update_daily(update.effective_message)
-        daily_statistics = chat_statistics.get_daily_statistics()
-        logger.info(f'{daily_statistics.messages_count} messages today in chat "{chat_id}"')
+        chat_statistics = ChatStatistics()
+        daily_statistics = chat_statistics.update_daily(update.effective_message, chat_id)
         if daily_statistics.threshold_reached:
             bot: Bot = context.bot
             bot.send_message(
