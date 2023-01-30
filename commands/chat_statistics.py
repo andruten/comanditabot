@@ -10,8 +10,8 @@ class ChatStatisticsCommandHandler(BaseCommandHandler):
 
     def process(self, update: Update, context: CallbackContext):
         chat_id = update.effective_chat.id
-        chat_statistics = ChatStatistics(chat_id)
-        daily_statistics = chat_statistics.get_daily_statistics()
+        chat_statistics = ChatStatistics()
+        daily_statistics = chat_statistics.get_daily_statistics(chat_id)
         text = f'Estadísticas de hoy\n' \
                f'Mensajes: {daily_statistics.messages_count}\n'
         if daily_statistics.photos_count:
