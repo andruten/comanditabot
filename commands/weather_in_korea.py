@@ -1,7 +1,7 @@
 from datetime import datetime
 from time import sleep
 
-from pytz import timezone
+from zoneinfo import ZoneInfo
 from telegram import ChatAction, Update
 from telegram.bot import Bot
 from telegram.ext import CallbackContext
@@ -37,9 +37,9 @@ class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
         )
 
     def get_utc_now(self):
-        return datetime.now(timezone('UTC'))
+        return datetime.now(ZoneInfo('UTC'))
 
     def is_korea_sleeping(self):
         now_utc = self.get_utc_now()
-        now_korea = now_utc.astimezone(timezone('Asia/Seoul'))
+        now_korea = now_utc.astimezone(ZoneInfo('Asia/Seoul'))
         return 0 <= now_korea.hour < 8
