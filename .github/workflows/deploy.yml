@@ -32,7 +32,6 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
-            make build
-            docker stop comanditabot
-            docker rm -f comanditabot
-            make run_detached
+            docker compose build
+            docker compose down
+            docker compose up -d
