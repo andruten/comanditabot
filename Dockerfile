@@ -23,4 +23,4 @@ RUN pip install -r /opt/requirements/${requirements:-"pro"}.txt
 # Copy code
 COPY . .
 
-CMD python -m comandita
+CMD ["python", "-m", "comandita"]
