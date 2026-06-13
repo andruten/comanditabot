@@ -1,9 +1,9 @@
+import asyncio
 from datetime import datetime
-from time import sleep
 
 from zoneinfo import ZoneInfo
-from telegram import ChatAction, Update
-from telegram.bot import Bot
+from telegram import Bot, Update
+from telegram.constants import ChatAction
 from telegram.ext import CallbackContext
 
 from clients.exceptions import NotFoundException
@@ -14,24 +14,24 @@ from commands.base import BaseCommandHandler
 class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
     COMMAND_NAME = 'tiempoencorea'
 
-    def process(self, update: Update, context: CallbackContext):
-        context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-        sleep(1)
+    async def process(self, update: Update, context: CallbackContext):
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        await asyncio.sleep(1)
         bot: Bot = context.bot
         if self.is_korea_sleeping():
-            bot.send_message(
+            await bot.send_message(
                 chat_id=update.effective_chat.id,
                 text='Dormida... 😡'
             )
-            sleep(1)
-            context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-            sleep(2)
+            await asyncio.sleep(1)
+            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+            await asyncio.sleep(2)
         try:
             weather_data = self.get_weather_data('Seoul')
             text = self.parse_weather_info(weather_data)
         except (ConnectionError, NotFoundException, ):
             text = 'No he podido obtener tiempo 😢'
-        bot.send_message(
+        await bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
         )

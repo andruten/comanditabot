@@ -1,10 +1,9 @@
+import asyncio
 from random import randint
-from time import sleep
 
-from telegram import ChatAction, ParseMode
-from telegram.bot import Bot
-from telegram.ext.callbackcontext import CallbackContext
-from telegram.update import Update
+from telegram import Bot, Update
+from telegram.constants import ChatAction, ParseMode
+from telegram.ext import CallbackContext
 
 from commands.base import BaseCommandHandler
 from reactions.reactions import MiMiMiReaction
@@ -17,14 +16,14 @@ class MiMiMiCommandHandler(BaseCommandHandler):
         super().__init__(*args, **kwargs)
         self.mimimis = {}
 
-    def process(self, update: Update, context: CallbackContext):
-        context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-        sleep(randint(1, 3))
+    async def process(self, update: Update, context: CallbackContext):
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        await asyncio.sleep(randint(1, 3))
         bot: Bot = context.bot
         try:
             text = self.do_mimimi(update.message.reply_to_message.text)
             if update.message.reply_to_message.text == text:
-                bot.send_message(
+                await bot.send_message(
                     chat_id=update.effective_chat.id,
                     parse_mode=ParseMode.MARKDOWN,
                     text=self.mimimis.get(text) or text,
@@ -34,7 +33,7 @@ class MiMiMiCommandHandler(BaseCommandHandler):
         except AttributeError:
             text = 'No puedo hacer mimimi sin citar un mensaje... 😢'
         # "store" the translated value for joking purposes
-        bot.send_message(
+        await bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
         )
