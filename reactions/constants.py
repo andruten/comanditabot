@@ -52,4 +52,5 @@ ZAPATERO_PHRASES = [
     'No lo quiero con carácter coyuntural, lo quiero definitivo',
     'Miente como un bellaco quien diga que hemos hecho recortes',
     'España ha vuelto al corazón de Europa',
+    'Ser socialista es, normalmente, tener muy poco y estar dispuesto a dar mucho',
 ]
