@@ -27,8 +27,11 @@ build_dev: check_env
 bash: check_env build_dev
 	@$(DOCKER) run --rm --env-file .env -v $(CURRENT_DIR):/opt/app -ti $(IMAGE_NAME):latest bash
 
+format: check_env build_dev
+	@$(DOCKER) run --rm --env-file .env $(IMAGE_NAME):latest ruff format
+
 lint: check_env build_dev
-	@$(DOCKER) run --rm --env-file .env $(IMAGE_NAME):latest flake8 .
+	@$(DOCKER) run --rm --env-file .env $(IMAGE_NAME):latest ruff check --fix --show-fixes
 
 test: check_env build_dev
 	@$(DOCKER) run --rm --env-file .env $(IMAGE_NAME):latest python -m pytest .

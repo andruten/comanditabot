@@ -19,5 +19,8 @@ jobs:
       - name: Check linting
         run: make lint
 
+      - name: Check format
+        run: make format
+
       - name: Run tests
         run: make test
