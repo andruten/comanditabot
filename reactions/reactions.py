@@ -1,13 +1,15 @@
 import re
+import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from random import choice, randint, random
-from time import sleep
 from typing import List
 
 import validators
-from telegram import Bot, ChatAction, Update
-from telegram.ext import CallbackContext, Filters, MessageHandler
+from telegram import Bot, Update
+from telegram.constants import ChatAction
+from telegram.ext import CallbackContext, MessageHandler
+from telegram.ext import filters
 
 from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
@@ -173,27 +175,27 @@ class PunishmentReaction(Reaction):
 class ReactionHandlerFactory(MessageHandler):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(Filters.text & ~Filters.command, self.process, *args, **kwargs)
+        super().__init__(filters.TEXT & ~filters.COMMAND, self.process, *args, **kwargs)
 
-    def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext):
         try:
             message_class = ReactionRegistry.process_message(update.effective_message.text)
         except DoNothingException:
             pass
         else:
-            context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-            sleep(randint(1, 3))
+            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+            await asyncio.sleep(randint(1, 3))
             text = message_class.transform()
             if message_class.reply:
                 # Reply to message
-                context.bot.send_chat_action(
+                await context.bot.send_chat_action(
                     chat_id=update.effective_chat.id,
                     action=ChatAction.TYPING,
                 )
-                update.message.reply_text(text)
+                await update.message.reply_text(text)
             else:
                 bot: Bot = context.bot
-                bot.send_message(
+                await bot.send_message(
                     chat_id=update.effective_chat.id,
                     text=text,
                 )
