@@ -11,9 +11,16 @@ from reactions import ReactionHandlerFactory
 
 load_dotenv()
 
-LOG_LEVEL = logging.DEBUG if os.environ.get('LOG_LEVEL', 'INFO') == 'DEBUG' else logging.INFO
-logging.basicConfig(level=LOG_LEVEL,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+app_log_level = getattr(logging, os.environ.get('LOG_LEVEL', 'INFO'), logging.INFO)
+logging.getLogger("chat_statistics").setLevel(app_log_level)
+logging.getLogger("clients").setLevel(app_log_level)
+logging.getLogger("commands").setLevel(app_log_level)
+logging.getLogger("reactions").setLevel(app_log_level)
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -30,6 +37,8 @@ def main():
     application.add_handler(ChatStatisticsMessageHandlerFactory(), group=1)
 
     application.run_polling()
+
+    logger.info('Bot started...')
 
 
 if __name__ == '__main__':
