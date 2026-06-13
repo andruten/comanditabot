@@ -1,6 +1,6 @@
 import os
 
-import requests
+import httpx
 
 from clients.exceptions import NotFoundException
 
@@ -26,7 +26,7 @@ class WeatherClient:
 
     def get_weather_data(self, city_name):
         params = self.get_params(q=city_name)
-        response = requests.get(self.WEATHER_ENDPOINT, params=params)
+        response = httpx.get(self.WEATHER_ENDPOINT, params=params)
         if response.status_code == 404:
             raise NotFoundException()
         return response.json()

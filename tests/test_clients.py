@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from clients.exceptions import NotFoundException
@@ -33,13 +35,16 @@ def test_parse_weather_info(weather_client, weather_response):
            'Ahora hace 8.66ºC aunque la sensación térmica es de 8.08ºC.' == weather_text
 
 
-def test_get_weather_data(requests_mock, weather_client):
-    requests_mock.get(weather_client.WEATHER_ENDPOINT, json={'a': 'a'})
-    response = weather_client.get_weather_data('Seoul')
+def test_get_weather_data(weather_client):
+    with patch('clients.weather.httpx.get') as mock_get:
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {'a': 'a'}
+        response = weather_client.get_weather_data('Seoul')
     assert {'a': 'a'} == response
 
 
-def test_not_found_weather_data(requests_mock, weather_client):
-    requests_mock.get(weather_client.WEATHER_ENDPOINT, status_code=404)
-    with pytest.raises(NotFoundException):
-        weather_client.get_weather_data('Seoul')
+def test_not_found_weather_data(weather_client):
+    with patch('clients.weather.httpx.get') as mock_get:
+        mock_get.return_value.status_code = 404
+        with pytest.raises(NotFoundException):
+            weather_client.get_weather_data('Seoul')
