@@ -19,17 +19,17 @@ def test_daily_statistics():
     assert daily_statistics.alert_when >= 200 <= 300
 
 
-@freeze_time('2023-01-27 03:00:00')
+@freeze_time("2023-01-27 03:00:00")
 def test_check_key():
     chat_id = 1
     chat_statistics = ChatStatistics()
     chat_statistics.get_daily_statistics(chat_id)
     assert chat_id in chat_statistics._daily_counter
-    assert '2023-01-27' in chat_statistics._daily_counter[chat_id]
-    with freeze_time('2023-01-28 03:00:00'):
+    assert "2023-01-27" in chat_statistics._daily_counter[chat_id]
+    with freeze_time("2023-01-28 03:00:00"):
         chat_statistics.get_daily_statistics(chat_id)
         assert chat_id in chat_statistics._daily_counter
-        assert '2023-01-28' in chat_statistics._daily_counter[chat_id]
+        assert "2023-01-28" in chat_statistics._daily_counter[chat_id]
 
 
 def test_update_daily():

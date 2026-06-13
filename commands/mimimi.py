@@ -10,14 +10,16 @@ from reactions.reactions import MiMiMiReaction
 
 
 class MiMiMiCommandHandler(BaseCommandHandler):
-    COMMAND_NAME = 'mimimi'
+    COMMAND_NAME = "mimimi"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.mimimis = {}
 
     async def process(self, update: Update, context: CallbackContext):
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+        await context.bot.send_chat_action(
+            chat_id=update.effective_chat.id, action=ChatAction.TYPING
+        )
         await asyncio.sleep(randint(1, 3))
         bot: Bot = context.bot
         try:
@@ -31,7 +33,7 @@ class MiMiMiCommandHandler(BaseCommandHandler):
                 return
             self.mimimis[text] = update.message.reply_to_message.text
         except AttributeError:
-            text = 'No puedo hacer mimimi sin citar un mensaje... 😢'
+            text = "No puedo hacer mimimi sin citar un mensaje... 😢"
         # "store" the translated value for joking purposes
         await bot.send_message(
             chat_id=update.effective_chat.id,

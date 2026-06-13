@@ -1,5 +1,3 @@
 from .chat_statistics import ChatStatisticsMessageHandlerFactory
 
-__all__ = [
-    'ChatStatisticsMessageHandlerFactory'
-]
+__all__ = ["ChatStatisticsMessageHandlerFactory"]
