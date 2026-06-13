@@ -4,7 +4,8 @@ from datetime import datetime
 from random import randint
 
 from telegram import Bot, Message, Update
-from telegram.ext import CallbackContext, Filters, MessageHandler
+from telegram.ext import CallbackContext, MessageHandler
+from telegram.ext import filters
 
 logger = logging.getLogger(__name__)
 
@@ -65,15 +66,15 @@ class ChatStatistics(metaclass=SingletonMeta):
 class ChatStatisticsMessageHandlerFactory(MessageHandler):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(Filters.all, self.process, *args, **kwargs)
+        super().__init__(filters.ALL, self.process, *args, **kwargs)
 
-    def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext):
         chat_id = update.effective_chat.id
         chat_statistics = ChatStatistics()
         daily_statistics = chat_statistics.update_daily(update.effective_message, chat_id)
         if daily_statistics.threshold_reached:
             bot: Bot = context.bot
-            bot.send_message(
+            await bot.send_message(
                 chat_id=update.effective_chat.id,
                 text=f'¡La virgen, lo que escribís! {daily_statistics.messages_count} mensajes 😵‍💫',
             )

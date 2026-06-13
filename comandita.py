@@ -2,8 +2,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from telegram.ext.dispatcher import Dispatcher
-from telegram.ext.updater import Updater
+from telegram.ext import Application
 
 from chat_statistics import ChatStatisticsMessageHandlerFactory
 from commands import MiMiMiCommandHandler, PunisherCommandHandler, StarCommandHandler, WeatherInKoreaCommandHandler
@@ -18,24 +17,19 @@ logging.basicConfig(level=LOG_LEVEL,
 
 
 def main():
-    updater = Updater(
-        os.environ.get('BOT_TOKEN'),
-        use_context=True,
-    )
-    dispatcher: Dispatcher = updater.dispatcher
+    application = Application.builder().token(os.environ.get('BOT_TOKEN')).build()
     # Commands
-    dispatcher.add_handler(MiMiMiCommandHandler())
-    dispatcher.add_handler(PunisherCommandHandler())
-    dispatcher.add_handler(StarCommandHandler())
-    dispatcher.add_handler(WeatherInKoreaCommandHandler())
-    dispatcher.add_handler(ChatStatisticsCommandHandler())
+    application.add_handler(MiMiMiCommandHandler())
+    application.add_handler(PunisherCommandHandler())
+    application.add_handler(StarCommandHandler())
+    application.add_handler(WeatherInKoreaCommandHandler())
+    application.add_handler(ChatStatisticsCommandHandler())
 
     # Messages
-    dispatcher.add_handler(ReactionHandlerFactory())
-    dispatcher.add_handler(ChatStatisticsMessageHandlerFactory(), group=1)
+    application.add_handler(ReactionHandlerFactory())
+    application.add_handler(ChatStatisticsMessageHandlerFactory(), group=1)
 
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 
 if __name__ == '__main__':

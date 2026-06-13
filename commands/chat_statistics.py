@@ -8,7 +8,7 @@ from commands.base import BaseCommandHandler
 class ChatStatisticsCommandHandler(BaseCommandHandler):
     COMMAND_NAME = 'stats'
 
-    def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext):
         chat_id = update.effective_chat.id
         chat_statistics = ChatStatistics()
         daily_statistics = chat_statistics.get_daily_statistics(chat_id)
@@ -21,7 +21,7 @@ class ChatStatisticsCommandHandler(BaseCommandHandler):
         if daily_statistics.audios_count:
             text += f'Audios: {daily_statistics.audios_count}\n'
         bot: Bot = context.bot
-        bot.send_message(
+        await bot.send_message(
             chat_id=update.effective_chat.id,
             text=text,
         )
