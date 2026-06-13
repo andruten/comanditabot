@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bullseye
+FROM python:3.14-slim-bookworm
 
 RUN mkdir /opt/app \
     && mkdir /opt/requirements \
@@ -11,14 +11,15 @@ RUN mkdir /opt/app \
 # Requirements
 RUN pip install --upgrade pip
 
-USER apprunner
-
 WORKDIR /opt/app
 
-ENV PATH="/home/apprunner/.local/bin:${PATH}"
 COPY ./requirements/ /opt/requirements/
 ARG requirements
 RUN pip install -r /opt/requirements/${requirements:-"pro"}.txt
+
+USER apprunner
+
+ENV PATH="/home/apprunner/.local/bin:${PATH}"
 
 # Copy code
 COPY . .
