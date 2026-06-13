@@ -1,24 +1,25 @@
-FROM python:3.11-slim-bullseye
+FROM python:3.14-slim-bookworm AS builder
 
-RUN mkdir /opt/app \
-    && mkdir /opt/requirements \
-    && addgroup --gid 4000 apprunner \
-    && adduser --system --disabled-password --disabled-login --gecos "" --gid 4000 --uid 4000 apprunner \
-    && chown -R apprunner:apprunner /opt/app \
-    && chown -R apprunner:apprunner /opt/requirements \
-    && chsh -s /bin/false apprunner
+ENV VIRTUAL_ENV=/opt/venv
+
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Requirements
 RUN pip install --upgrade pip
 
-USER apprunner
-
-WORKDIR /opt/app
-
-ENV PATH="/home/apprunner/.local/bin:${PATH}"
-COPY ./requirements/ /opt/requirements/
+COPY ./requirements/ .
 ARG requirements
-RUN pip install -r /opt/requirements/${requirements:-"pro"}.txt
+RUN pip install -r ${requirements:-"pro"}.txt
+
+FROM python:3.14-slim-bookworm
+
+WORKDIR /app
+
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
 
 # Copy code
 COPY . .

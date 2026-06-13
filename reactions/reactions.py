@@ -45,20 +45,19 @@ class Registry:
 
 
 class ReactionRegistry:
-
     @classmethod
     def register(cls, code: str, priority: int = 1):
         def wrapper(registry: Reaction):
             registries = cls.get_registries()
             registries.insert(priority, Registry(code=code, reaction_class=registry))
-            setattr(cls, '__registries', registries)
+            setattr(cls, "__registries", registries)
             return registry
 
         return wrapper
 
     @classmethod
     def get_registries(cls) -> List[Registry]:
-        registries = getattr(cls, '__registries', list())
+        registries = getattr(cls, "__registries", list())
         return registries
 
     @classmethod
@@ -71,73 +70,73 @@ class ReactionRegistry:
         raise DoNothingException()
 
 
-@ReactionRegistry.register('digi', priority=5)
+@ReactionRegistry.register("digi", priority=5)
 class DigiReaction(Reaction):
-
     def transform(self):
-        return 'Woof! Woof!'
+        return "Woof! Woof!"
 
     def trigger(self) -> bool:
-        return 'digi' in self.message.lower()
+        return "digi" in self.message.lower()
 
 
-@ReactionRegistry.register('rajoy', priority=1)
+@ReactionRegistry.register("rajoy", priority=1)
 class RajoyReaction(Reaction):
-
     def transform(self):
         return choice(RAJOY_PHRASES)
 
     def trigger(self) -> bool:
-        return any(x in self.message.lower() for x in ['brey', 'rajoy', 'mariano'])
+        return any(x in self.message.lower() for x in ["brey", "rajoy", "mariano"])
 
 
-@ReactionRegistry.register('zapatero', priority=2)
+@ReactionRegistry.register("zapatero", priority=2)
 class ZapateroReaction(Reaction):
-
     def transform(self):
         return choice(ZAPATERO_PHRASES)
 
     def trigger(self) -> bool:
-        return any(x in self.message.lower() for x in ['zapatero', 'zp'])
+        return any(x in self.message.lower() for x in ["zapatero", "zp"])
 
 
-@ReactionRegistry.register('kids_alert', priority=3)
+@ReactionRegistry.register("kids_alert", priority=3)
 class KidsAlertReaction(Reaction):
     reply = True
 
     def transform(self):
-        return '🚨🚨 Kids Alert! 🚨🚨'
+        return "🚨🚨 Kids Alert! 🚨🚨"
 
     def trigger(self) -> bool:
-        return any(x in self.message.lower() for x in ['niño', 'niña', 'hijo', 'hija', 'papá', 'papi'])
+        return any(
+            x in self.message.lower()
+            for x in ["niño", "niña", "hijo", "hija", "papá", "papi"]
+        )
 
 
-@ReactionRegistry.register('broken_group', priority=4)
+@ReactionRegistry.register("broken_group", priority=4)
 class BrokenGroupReaction(Reaction):
     reply = True
 
     def transform(self):
-        return 'Anda que avisas... El grupo está roto.'
+        return "Anda que avisas... El grupo está roto."
 
     def trigger(self) -> bool:
-        return any(x in self.message.lower() for x in ['estuve en', 'fui a'])
+        return any(x in self.message.lower() for x in ["estuve en", "fui a"])
 
 
-@ReactionRegistry.register('mimimi', priority=6)
+@ReactionRegistry.register("mimimi", priority=6)
 class MiMiMiReaction(Reaction):
     probability = 1
     reply = True
     REPLACES = (
-        ('[aeou]', 'i'),
-        ('[AEOU]', 'I'),
-        ('[áéóú]', 'í'),
-        ('[ÁÉÓÚ]', 'Í'),
-        ('[àèòù]', 'ì'),
-        ('[ÀÈÒÙ]', 'Ì'),
-        ('[äëöü]', 'ï'),
-        ('[ÄËÖÜ]', 'Ï'),
-        ('[âêôû]', 'î'),
-        ('[ÂÊÔÛ]', 'Î'),
+        ("[aeou]", "i"),
+        ("[AEOU]", "I"),
+        ("[áéóú]", "í"),
+        ("[ÁÉÓÚ]", "Í"),
+        ("[àèòù]", "ì"),
+        ("[ÀÈÒÙ]", "Ì"),
+        ("[äëöü]", "ï"),
+        ("[ÄËÖÜ]", "Ï"),
+        ("[âêôû]", "î"),
+        ("[ÂÊÔÛ]", "Î"),
     )
 
     def _do_mimimi(self):
@@ -153,16 +152,16 @@ class MiMiMiReaction(Reaction):
         return True
 
 
-@ReactionRegistry.register('punishment', priority=0)
+@ReactionRegistry.register("punishment", priority=0)
 class PunishmentReaction(Reaction):
     probability = 10
     reply = True
     PUNISHMENTS = [
-        'Esto tiene, por lo menos, 3 días.',
-        'O sea, chao.',
-        'Gilipollas tú, gilipollas tú y gilipollas tú.',
-        'Perdona, ¿eres tonto?',
-        'Mmmmmu tonnnto...',
+        "Esto tiene, por lo menos, 3 días.",
+        "O sea, chao.",
+        "Gilipollas tú, gilipollas tú y gilipollas tú.",
+        "Perdona, ¿eres tonto?",
+        "Mmmmmu tonnnto...",
     ]
 
     def transform(self):
@@ -173,17 +172,20 @@ class PunishmentReaction(Reaction):
 
 
 class ReactionHandlerFactory(MessageHandler):
-
     def __init__(self, *args, **kwargs):
         super().__init__(filters.TEXT & ~filters.COMMAND, self.process, *args, **kwargs)
 
     async def process(self, update: Update, context: CallbackContext):
         try:
-            message_class = ReactionRegistry.process_message(update.effective_message.text)
+            message_class = ReactionRegistry.process_message(
+                update.effective_message.text
+            )
         except DoNothingException:
             pass
         else:
-            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+            await context.bot.send_chat_action(
+                chat_id=update.effective_chat.id, action=ChatAction.TYPING
+            )
             await asyncio.sleep(randint(1, 3))
             text = message_class.transform()
             if message_class.reply:

@@ -46,7 +46,7 @@ class ChatStatistics(metaclass=SingletonMeta):
     def get_daily_statistics(self, chat_id: int) -> DailyStatistics:
         if chat_id not in self._daily_counter:
             self._daily_counter[chat_id] = {}
-        today = datetime.utcnow().today().strftime('%Y-%m-%d')
+        today = datetime.utcnow().today().strftime("%Y-%m-%d")
         if today not in self._daily_counter[chat_id]:
             self._daily_counter[chat_id][today] = DailyStatistics()
         return self._daily_counter[chat_id][today]
@@ -64,17 +64,18 @@ class ChatStatistics(metaclass=SingletonMeta):
 
 
 class ChatStatisticsMessageHandlerFactory(MessageHandler):
-
     def __init__(self, *args, **kwargs):
         super().__init__(filters.ALL, self.process, *args, **kwargs)
 
     async def process(self, update: Update, context: CallbackContext):
         chat_id = update.effective_chat.id
         chat_statistics = ChatStatistics()
-        daily_statistics = chat_statistics.update_daily(update.effective_message, chat_id)
+        daily_statistics = chat_statistics.update_daily(
+            update.effective_message, chat_id
+        )
         if daily_statistics.threshold_reached:
             bot: Bot = context.bot
             await bot.send_message(
                 chat_id=update.effective_chat.id,
-                text=f'¡La virgen, lo que escribís! {daily_statistics.messages_count} mensajes 😵‍💫',
+                text=f"¡La virgen, lo que escribís! {daily_statistics.messages_count} mensajes 😵‍💫",
             )
