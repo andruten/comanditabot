@@ -2,7 +2,13 @@ name: Build image
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+    tags:
+      - "*"
+  release:
+    types:
+      - published
   workflow_dispatch:
 
 permissions:
@@ -29,6 +35,37 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
+      - name: Prepare image tags
+        id: image-tags
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          image="${REGISTRY}/${IMAGE_NAME}"
+          tags=("${image}:${GITHUB_SHA}")
+
+          if [[ "${GITHUB_REF_TYPE}" == "branch" && "${GITHUB_REF_NAME}" == "main" ]]; then
+            tags+=("${image}:main")
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME//\//-}"
+            tags+=("${image}:${tag}")
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "release" && -n "${RELEASE_TAG:-}" ]]; then
+            tag="${RELEASE_TAG//\//-}"
+            tags+=("${image}:${tag}")
+          fi
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${tags[@]}" | awk '!seen[$0]++'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -36,8 +73,6 @@ jobs:
           push: true
           build-args: |
             requirements=pro
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main
+          tags: ${{ steps.image-tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
