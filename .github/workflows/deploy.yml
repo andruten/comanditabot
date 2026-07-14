@@ -76,3 +76,30 @@ jobs:
           tags: ${{ steps.image-tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  notify-infra:
+    needs: build
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - id: infra-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.K8S_INFRA_APP_ID }}
+          private-key: ${{ secrets.K8S_INFRA_APP_PRIVATE_KEY }}
+          owner: torgus
+          repositories: k8s-infra
+
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.infra-token.outputs.token }}
+          script: |
+            await github.rest.repos.createDispatchEvent({
+              owner: "torgus",
+              repo: "k8s-infra",
+              event_type: "image-published",
+              client_payload: {
+                app: "comanditabot",
+                tag: context.ref.replace("refs/tags/", ""),
+              },
+            });
