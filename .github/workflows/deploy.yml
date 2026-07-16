@@ -5,7 +5,7 @@ on:
     branches:
       - main
     tags:
-      - "*"
+      - "**"
   release:
     types:
       - published
@@ -79,7 +79,9 @@ jobs:
 
   notify-infra:
     needs: build
-    if: github.event_name == 'push' && github.ref_type == 'tag'
+    if: >
+      (github.event_name == 'push' && github.ref_type == 'tag') ||
+      github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - id: infra-token
@@ -94,12 +96,15 @@ jobs:
         with:
           github-token: ${{ steps.infra-token.outputs.token }}
           script: |
+            const tag = context.payload.release?.tag_name ??
+              context.ref.replace("refs/tags/", "");
+
             await github.rest.repos.createDispatchEvent({
               owner: "torgus",
               repo: "k8s-infra",
               event_type: "image-published",
               client_payload: {
                 app: "comanditabot",
-                tag: context.ref.replace("refs/tags/", ""),
+                tag,
               },
             });
