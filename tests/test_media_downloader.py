@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from media_downloads.downloader import DownloadError, MediaDownloader, MediaTooLargeError
+from media_downloads.downloader import (
+    DownloadError,
+    MediaDownloader,
+    MediaTooLargeError,
+    YtDlpExtractor,
+)
 
 MIB = 1024 * 1024
 
@@ -60,3 +65,26 @@ def test_download_rejects_file_outside_temporary_directory(tmp_path):
 
     with pytest.raises(DownloadError, match="temporary directory"):
         downloader.download("https://x.com/alice/status/1", tmp_path)
+
+
+def test_extractor_keeps_all_items_when_a_url_has_multiple_media(monkeypatch, tmp_path):
+    options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, settings):
+            options.update(settings)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            return None
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
+
+    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract("https://instagram.com/p/example", tmp_path)
+
+    assert options.get("noplaylist") is not True

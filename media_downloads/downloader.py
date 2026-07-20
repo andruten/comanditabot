@@ -53,7 +53,7 @@ class YtDlpExtractor:
     def extract(self, url: str, output_directory: Path) -> list[Path]:
         options = {
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
-            "noplaylist": True,
+            "noplaylist": False,
             "max_filesize": self._max_file_size_bytes,
             "quiet": True,
             "no_warnings": True,

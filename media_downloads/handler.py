@@ -1,11 +1,14 @@
 """Telegram handler that replies to supported public-media links."""
 
 import asyncio
+import os
 import re
 from collections import defaultdict, deque
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
+from typing import Mapping
 
 from telegram import Update
 from telegram.constants import ChatAction
@@ -14,9 +17,22 @@ from telegram.ext import CallbackContext, MessageHandler, filters
 from .downloader import DownloadError, MediaDownloader, YtDlpExtractor
 from .urls import classify_url
 
-MAX_FILE_SIZE_BYTES = 45 * 1024 * 1024
-MAX_DOWNLOADS_PER_MINUTE = 3
 URL_PATTERN = re.compile(r"https?://[^\s<>()]+")
+
+
+@dataclass(frozen=True)
+class MediaSettings:
+    max_file_size_bytes: int
+    max_downloads_per_minute: int
+
+    @classmethod
+    def from_env(cls, env: Mapping[str, str]) -> "MediaSettings":
+        return cls(
+            max_file_size_bytes=_positive_int(env, "MEDIA_MAX_FILE_SIZE_MB", default=45) * 1024 * 1024,
+            max_downloads_per_minute=_positive_int(
+                env, "MEDIA_MAX_DOWNLOADS_PER_MINUTE", default=10
+            ),
+        )
 
 
 class SlidingWindowRateLimiter:
@@ -39,12 +55,13 @@ class SlidingWindowRateLimiter:
 
 class MediaDownloadHandler:
     def __init__(self, *, downloader=None, rate_limiter=None) -> None:
+        settings = MediaSettings.from_env(os.environ)
         self._downloader = downloader or MediaDownloader(
-            extractor=YtDlpExtractor(max_file_size_bytes=MAX_FILE_SIZE_BYTES),
-            max_file_size_bytes=MAX_FILE_SIZE_BYTES,
+            extractor=YtDlpExtractor(max_file_size_bytes=settings.max_file_size_bytes),
+            max_file_size_bytes=settings.max_file_size_bytes,
         )
         self._rate_limiter = rate_limiter or SlidingWindowRateLimiter(
-            limit=MAX_DOWNLOADS_PER_MINUTE, period_seconds=60
+            limit=settings.max_downloads_per_minute, period_seconds=60
         )
 
     async def process(self, update: Update, context: CallbackContext) -> None:
@@ -100,3 +117,14 @@ async def _reply_with_attachment(message, path: Path) -> None:
             await message.reply_animation(attachment)
         else:
             await message.reply_document(attachment)
+
+
+def _positive_int(env: Mapping[str, str], name: str, *, default: int) -> int:
+    raw_value = env.get(name, str(default))
+    try:
+        value = int(raw_value)
+    except ValueError as error:
+        raise ValueError(f"{name} must be a positive integer") from error
+    if value <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return value
