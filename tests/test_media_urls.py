@@ -15,6 +15,9 @@ from media_downloads.urls import Platform, classify_url
         ("https://fb.watch/example", Platform.FACEBOOK),
         ("https://www.tiktok.com/@alice/video/123", Platform.TIKTOK),
         ("https://vm.tiktok.com/ZN819gjqL", Platform.TIKTOK),
+        ("https://www.youtube.com/shorts/example", Platform.YOUTUBE),
+        ("https://m.youtube.com/watch?v=example", Platform.YOUTUBE),
+        ("https://youtu.be/example", Platform.YOUTUBE),
     ],
 )
 def test_classify_url_accepts_supported_public_media(url, platform):
@@ -30,6 +33,8 @@ def test_classify_url_accepts_supported_public_media(url, platform):
         "https://x.com/alice",
         "https://facebook.com/groups/example",
         "https://tiktok.com/@alice",
+        "https://youtube.com/channel/example",
+        "https://youtube.com/watch",
         "https://example.com/video",
     ],
 )

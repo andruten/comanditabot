@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 import re
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 
 URL_PATTERN = re.compile(r"https?://[^\s<>()]+")
@@ -13,6 +13,7 @@ class Platform(StrEnum):
     X = "x"
     FACEBOOK = "facebook"
     TIKTOK = "tiktok"
+    YOUTUBE = "youtube"
 
 
 def classify_url(raw_url: str) -> Platform | None:
@@ -38,6 +39,12 @@ def classify_url(raw_url: str) -> Platform | None:
         return Platform.TIKTOK
     if hostname == "tiktok.com" and _is_tiktok_media(path_parts):
         return Platform.TIKTOK
+    if hostname in {"youtube.com", "m.youtube.com"} and _is_youtube_media(
+        path_parts, parsed.query
+    ):
+        return Platform.YOUTUBE
+    if hostname == "youtu.be" and path_parts:
+        return Platform.YOUTUBE
     return None
 
 
@@ -75,3 +82,9 @@ def _is_facebook_media(path_parts: list[str], query: str) -> bool:
 
 def _is_tiktok_media(path_parts: list[str]) -> bool:
     return len(path_parts) >= 3 and path_parts[-2] == "video"
+
+
+def _is_youtube_media(path_parts: list[str], query: str) -> bool:
+    if len(path_parts) >= 2 and path_parts[0] == "shorts":
+        return True
+    return path_parts == ["watch"] and bool(parse_qs(query).get("v"))
