@@ -111,6 +111,7 @@ def test_extractor_ignores_missing_formats_inside_instagram_carousels(monkeypatc
     YtDlpExtractor(max_file_size_bytes=45 * MIB).extract("https://instagram.com/p/example", tmp_path)
 
     assert options["ignore_no_formats_error"] is True
+    assert options["lazy_playlist"] is True
 
 
 def test_extractor_does_not_expand_youtube_playlists(monkeypatch, tmp_path):

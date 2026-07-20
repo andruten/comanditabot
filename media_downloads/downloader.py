@@ -79,6 +79,7 @@ class YtDlpExtractor:
             logger.info("yt-dlp using Chrome impersonation for public X media")
         if classify_url(url) is Platform.INSTAGRAM:
             options["ignore_no_formats_error"] = True
+            options["lazy_playlist"] = True
             logger.info("yt-dlp will skip unavailable media inside an Instagram carousel")
         if (
             classify_url(url) is Platform.YOUTUBE
