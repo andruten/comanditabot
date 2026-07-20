@@ -8,6 +8,15 @@ def test_runtime_image_installs_ffmpeg_and_starts_the_bot():
     assert 'CMD ["python", "-m", "comandita"]' in dockerfile
 
 
+def test_runtime_image_includes_the_youtube_challenge_solver():
+    dockerfile = Path("Dockerfile").read_text()
+    requirements = Path("requirements/pro.txt").read_text()
+
+    assert "FROM node:22-bookworm-slim AS node" in dockerfile
+    assert "COPY --from=node /usr/local/bin/node /usr/local/bin/node" in dockerfile
+    assert "yt-dlp-ejs==0.8.0" in requirements
+
+
 def test_youtube_pot_provider_image_is_pinned():
     dockerfile = Path("youtube-pot-provider/Dockerfile").read_text()
 

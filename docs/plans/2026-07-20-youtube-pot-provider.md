@@ -6,7 +6,7 @@
 
 **Architecture:** A pinned upstream BgUtils provider runs as a second, internal-only Kubernetes Deployment. The bot installs its yt-dlp plugin and enables it only through an explicit service URL, while the GitHub workflow publishes both immutable images from one commit.
 
-**Tech Stack:** Python 3.14, yt-dlp, bgutil-ytdlp-pot-provider 1.3.1, Docker, GitHub Actions, Helm, Flux.
+**Tech Stack:** Python 3.14, Node.js 22, yt-dlp, yt-dlp-ejs 0.8.0, bgutil-ytdlp-pot-provider 1.3.1, Docker, GitHub Actions, Helm, Flux.
 
 ### Task 1: Configure yt-dlp to use an optional internal provider
 
@@ -21,7 +21,7 @@
 
 **Step 2:** Run `make build_dev && docker run --rm --env-file .env comanditabot:latest python -m pytest -o addopts='' tests/test_media_downloader.py tests/test_media_settings.py -q`; expect failure.
 
-**Step 3:** Add the pinned plugin, extend `MediaSettings`, and pass the optional URL to `YtDlpExtractor`. Configure `youtube:player_client=mweb` and `youtubepot-bgutilhttp:base_url=<internal URL>` only for public YouTube links.
+**Step 3:** Add the pinned plugin and EJS package, copy Node.js 22 into the runtime image, extend `MediaSettings`, and pass the optional URL to `YtDlpExtractor`. Configure `youtube:player_client=mweb`, `youtubepot-bgutilhttp:base_url=<internal URL>`, and the Node JavaScript runtime only for public YouTube links.
 
 **Step 4:** Rerun the focused tests; expect pass. Commit `feat: configure YouTube PO Token provider`.
 

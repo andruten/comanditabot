@@ -217,6 +217,7 @@ def test_extractor_uses_the_internal_provider_for_youtube_only(monkeypatch, tmp_
         "youtube": {"player_client": ["mweb"]},
         "youtubepot-bgutilhttp": {"base_url": ["http://youtube-pot-provider:4416"]},
     }
+    assert options["js_runtimes"] == {"node": {}}
 
 
 def test_extractor_does_not_configure_the_provider_for_other_platforms(monkeypatch, tmp_path):

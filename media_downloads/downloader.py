@@ -85,6 +85,7 @@ class YtDlpExtractor:
                 "youtube": {"player_client": ["mweb"]},
                 "youtubepot-bgutilhttp": {"base_url": [self._youtube_pot_provider_url]},
             }
+            options["js_runtimes"] = {"node": {}}
             logger.info("yt-dlp using the internal PO Token provider for public YouTube media")
         try:
             with yt_dlp.YoutubeDL(options) as downloader:

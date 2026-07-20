@@ -1,3 +1,5 @@
+FROM node:22-bookworm-slim AS node
+
 FROM python:3.14-slim-bookworm AS builder
 
 ENV VIRTUAL_ENV=/opt/venv
@@ -22,6 +24,8 @@ RUN apt-get update \
 
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 COPY --from=builder $VIRTUAL_ENV $VIRTUAL_ENV
 
