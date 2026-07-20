@@ -7,7 +7,10 @@ from typing import Protocol
 
 import yt_dlp
 
+from .urls import Platform, classify_url
+
 logger = logging.getLogger(__name__)
+YOUTUBE_MAX_DURATION_SECONDS = 10 * 60
 
 
 class DownloadError(Exception):
@@ -63,6 +66,7 @@ class YtDlpExtractor:
                 "/best[ext=mp4][acodec!=none]/best"
             ),
             "max_filesize": self._max_file_size_bytes,
+            "match_filter": _youtube_duration_filter,
             "quiet": True,
             "no_warnings": True,
         }
@@ -88,3 +92,19 @@ class YtDlpExtractor:
 
 def _loggable_url(url: str) -> str:
     return url.split("?", maxsplit=1)[0].split("#", maxsplit=1)[0]
+
+
+def _youtube_duration_filter(info: dict, *, incomplete: bool) -> str | None:
+    if incomplete:
+        return None
+
+    webpage_url = info.get("webpage_url") or info.get("original_url")
+    if not webpage_url or classify_url(webpage_url) is not Platform.YOUTUBE:
+        return None
+
+    duration = info.get("duration")
+    if duration is None:
+        return "YouTube videos with an unknown duration are not supported"
+    if duration > YOUTUBE_MAX_DURATION_SECONDS:
+        return "YouTube videos longer than 10 minutes are not supported"
+    return None

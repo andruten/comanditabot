@@ -113,3 +113,52 @@ def test_extractor_prefers_a_telegram_playable_mp4_format(monkeypatch, tmp_path)
     assert options["format"] == (
         "best[ext=mp4][vcodec!*=vp9][acodec!=none]/best[ext=mp4][acodec!=none]/best"
     )
+
+
+def test_extractor_rejects_youtube_videos_longer_than_ten_minutes(monkeypatch, tmp_path):
+    options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, settings):
+            options.update(settings)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            return None
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
+
+    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+        "https://youtube.com/watch?v=example", tmp_path
+    )
+
+    match_filter = options["match_filter"]
+    assert (
+        match_filter(
+            {"webpage_url": "https://youtube.com/watch?v=example", "duration": 601},
+            incomplete=False,
+        )
+        == "YouTube videos longer than 10 minutes are not supported"
+    )
+    assert (
+        match_filter(
+            {"webpage_url": "https://youtube.com/watch?v=example", "duration": 600},
+            incomplete=False,
+        )
+        is None
+    )
+    assert (
+        match_filter({"webpage_url": "https://youtube.com/watch?v=example"}, incomplete=False)
+        == "YouTube videos with an unknown duration are not supported"
+    )
+    assert (
+        match_filter(
+            {"webpage_url": "https://instagram.com/p/example"}, incomplete=False
+        )
+        is None
+    )
