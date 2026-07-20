@@ -44,4 +44,3 @@ Run the Task 1 command and then `make test`.
 git add media_downloads/handler.py tests/test_media_handler.py
 git commit -m "feat: add video thumbnails"
 ```
-
