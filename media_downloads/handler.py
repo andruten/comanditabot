@@ -17,6 +17,8 @@ from telegram.ext import CallbackContext, MessageHandler, filters
 from .downloader import DownloadError, MediaDownloader, YtDlpExtractor
 from .urls import supported_urls
 
+MAX_TELEGRAM_THUMBNAIL_SIZE_BYTES = 200 * 1024
+
 
 @dataclass(frozen=True)
 class MediaSettings:
@@ -137,7 +139,11 @@ async def _reply_with_attachment(message, path: Path, thumbnail_generator) -> No
             await message.reply_photo(attachment)
         elif suffix in {".mp4", ".mov", ".m4v", ".webm"}:
             thumbnail_path = await asyncio.to_thread(thumbnail_generator.generate, path)
-            if thumbnail_path:
+            if (
+                thumbnail_path
+                and thumbnail_path.is_file()
+                and thumbnail_path.stat().st_size <= MAX_TELEGRAM_THUMBNAIL_SIZE_BYTES
+            ):
                 with thumbnail_path.open("rb") as thumbnail:
                     await message.reply_video(attachment, thumbnail=thumbnail)
             else:

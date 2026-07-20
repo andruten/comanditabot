@@ -68,6 +68,13 @@ class NoThumbnailGenerator:
         return None
 
 
+class OversizedThumbnailGenerator:
+    def generate(self, video_path):
+        thumbnail = video_path.with_suffix(".thumbnail.jpg")
+        thumbnail.write_bytes(b"thumbnail" * (200 * 1024 // len(b"thumbnail") + 1))
+        return thumbnail
+
+
 def update_for(message, user_id=42):
     return SimpleNamespace(
         effective_message=message,
@@ -143,6 +150,20 @@ async def test_video_reply_still_sends_when_thumbnail_generation_fails():
     handler = MediaDownloadHandler(
         downloader=FakeDownloader(["clip.mp4"]),
         thumbnail_generator=NoThumbnailGenerator(),
+    )
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.video_replies == ["clip.mp4"]
+    assert message.video_thumbnails == [None]
+
+
+@pytest.mark.asyncio
+async def test_video_reply_omits_a_thumbnail_that_is_too_large():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = MediaDownloadHandler(
+        downloader=FakeDownloader(["clip.mp4"]),
+        thumbnail_generator=OversizedThumbnailGenerator(),
     )
 
     await handler.process(update_for(message), context_for_bot())
