@@ -61,7 +61,7 @@ class YtDlpExtractor:
         logger.info("yt-dlp starting public media extraction for %s", _loggable_url(url))
         options = {
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
-            "noplaylist": False,
+            "noplaylist": classify_url(url) is Platform.YOUTUBE,
             "format": (
                 "best[ext=mp4][vcodec!*=vp9][acodec!=none]"
                 "/best[ext=mp4][acodec!=none]/best"
