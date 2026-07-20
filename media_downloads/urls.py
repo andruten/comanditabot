@@ -1,7 +1,11 @@
 """Recognise the public media URL shapes supported by the bot."""
 
 from enum import StrEnum
+import re
 from urllib.parse import urlsplit
+
+
+URL_PATTERN = re.compile(r"https?://[^\s<>()]+")
 
 
 class Platform(StrEnum):
@@ -35,6 +39,16 @@ def classify_url(raw_url: str) -> Platform | None:
     ):
         return Platform.TIKTOK
     return None
+
+
+def supported_urls(text: str) -> list[str]:
+    """Return supported media URLs embedded in a Telegram message."""
+    urls = []
+    for match in URL_PATTERN.findall(text):
+        url = match.rstrip(".,!?;:")
+        if classify_url(url) is not None:
+            urls.append(url)
+    return urls
 
 
 def _is_instagram_media(path_parts: list[str]) -> bool:

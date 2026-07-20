@@ -2,7 +2,6 @@
 
 import asyncio
 import os
-import re
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,9 +14,7 @@ from telegram.constants import ChatAction
 from telegram.ext import CallbackContext, MessageHandler, filters
 
 from .downloader import DownloadError, MediaDownloader, YtDlpExtractor
-from .urls import classify_url
-
-URL_PATTERN = re.compile(r"https?://[^\s<>()]+")
+from .urls import supported_urls
 
 
 @dataclass(frozen=True)
@@ -69,7 +66,7 @@ class MediaDownloadHandler:
         if not message or not message.text or not update.effective_user:
             return
 
-        for url in _supported_urls(message.text):
+        for url in supported_urls(message.text):
             if not self._rate_limiter.allow(str(update.effective_user.id)):
                 await message.reply_text("Has alcanzado el límite de descargas. Inténtalo más tarde.")
                 return
@@ -95,15 +92,6 @@ class MediaDownloadHandlerFactory(MessageHandler):
 
     async def process(self, update: Update, context: CallbackContext) -> None:
         await self._handler.process(update, context)
-
-
-def _supported_urls(text: str) -> list[str]:
-    urls = []
-    for match in URL_PATTERN.findall(text):
-        url = match.rstrip(".,!?;:")
-        if classify_url(url) is not None:
-            urls.append(url)
-    return urls
 
 
 async def _reply_with_attachment(message, path: Path) -> None:
