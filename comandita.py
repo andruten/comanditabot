@@ -12,6 +12,7 @@ from commands import (
     WeatherInKoreaCommandHandler,
 )
 from commands.chat_statistics import ChatStatisticsCommandHandler
+from media_downloads.handler import MediaDownloadHandlerFactory
 from reactions import ReactionHandlerFactory
 
 load_dotenv()
@@ -28,8 +29,9 @@ logging.getLogger("reactions").setLevel(app_log_level)
 logger = logging.getLogger(__name__)
 
 
-def main():
-    application = Application.builder().token(os.environ.get("BOT_TOKEN")).build()
+def configure_handlers(application):
+    application.add_handler(MediaDownloadHandlerFactory(), group=-1)
+
     # Commands
     application.add_handler(MiMiMiCommandHandler())
     application.add_handler(PunisherCommandHandler())
@@ -41,6 +43,10 @@ def main():
     application.add_handler(ReactionHandlerFactory())
     application.add_handler(ChatStatisticsMessageHandlerFactory(), group=1)
 
+
+def main():
+    application = Application.builder().token(os.environ.get("BOT_TOKEN")).build()
+    configure_handlers(application)
     application.run_polling()
 
     logger.info("Bot started...")
