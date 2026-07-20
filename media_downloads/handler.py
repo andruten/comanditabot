@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class MediaSettings:
     max_file_size_bytes: int
     max_downloads_per_minute: int
+    youtube_pot_provider_url: str | None
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> "MediaSettings":
@@ -34,6 +35,7 @@ class MediaSettings:
             max_downloads_per_minute=_positive_int(
                 env, "MEDIA_MAX_DOWNLOADS_PER_MINUTE", default=10
             ),
+            youtube_pot_provider_url=env.get("YOUTUBE_POT_PROVIDER_URL") or None,
         )
 
 
@@ -96,7 +98,10 @@ class MediaDownloadHandler:
     def __init__(self, *, downloader=None, rate_limiter=None, thumbnail_generator=None) -> None:
         settings = MediaSettings.from_env(os.environ)
         self._downloader = downloader or MediaDownloader(
-            extractor=YtDlpExtractor(max_file_size_bytes=settings.max_file_size_bytes),
+            extractor=YtDlpExtractor(
+                max_file_size_bytes=settings.max_file_size_bytes,
+                youtube_pot_provider_url=settings.youtube_pot_provider_url,
+            ),
             max_file_size_bytes=settings.max_file_size_bytes,
         )
         self._rate_limiter = rate_limiter or SlidingWindowRateLimiter(

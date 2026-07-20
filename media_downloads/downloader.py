@@ -54,8 +54,11 @@ class MediaDownloader:
 
 
 class YtDlpExtractor:
-    def __init__(self, *, max_file_size_bytes: int) -> None:
+    def __init__(
+        self, *, max_file_size_bytes: int, youtube_pot_provider_url: str | None = None
+    ) -> None:
         self._max_file_size_bytes = max_file_size_bytes
+        self._youtube_pot_provider_url = youtube_pot_provider_url
 
     def extract(self, url: str, output_directory: Path) -> list[Path]:
         logger.info("yt-dlp starting public media extraction for %s", _loggable_url(url))
@@ -74,6 +77,15 @@ class YtDlpExtractor:
         if _is_x_url(url):
             options["impersonate"] = "chrome"
             logger.info("yt-dlp using Chrome impersonation for public X media")
+        if (
+            classify_url(url) is Platform.YOUTUBE
+            and self._youtube_pot_provider_url is not None
+        ):
+            options["extractor_args"] = {
+                "youtube": {"player_client": ["mweb"]},
+                "youtubepot-bgutilhttp": {"base_url": [self._youtube_pot_provider_url]},
+            }
+            logger.info("yt-dlp using the internal PO Token provider for public YouTube media")
         try:
             with yt_dlp.YoutubeDL(options) as downloader:
                 downloader.extract_info(url, download=True)

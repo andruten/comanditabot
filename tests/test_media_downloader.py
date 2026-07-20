@@ -189,6 +189,63 @@ def test_extractor_rejects_youtube_videos_longer_than_ten_minutes(monkeypatch, t
     )
 
 
+def test_extractor_uses_the_internal_provider_for_youtube_only(monkeypatch, tmp_path):
+    options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, settings):
+            options.update(settings)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            return None
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
+
+    extractor = YtDlpExtractor(
+        max_file_size_bytes=45 * MIB,
+        youtube_pot_provider_url="http://youtube-pot-provider:4416",
+    )
+    extractor.extract("https://youtube.com/shorts/example", tmp_path)
+
+    assert options["extractor_args"] == {
+        "youtube": {"player_client": ["mweb"]},
+        "youtubepot-bgutilhttp": {"base_url": ["http://youtube-pot-provider:4416"]},
+    }
+
+
+def test_extractor_does_not_configure_the_provider_for_other_platforms(monkeypatch, tmp_path):
+    options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, settings):
+            options.update(settings)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            return None
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
+
+    extractor = YtDlpExtractor(
+        max_file_size_bytes=45 * MIB,
+        youtube_pot_provider_url="http://youtube-pot-provider:4416",
+    )
+    extractor.extract("https://instagram.com/p/example", tmp_path)
+
+    assert "extractor_args" not in options
+
+
 @pytest.mark.parametrize(
     ("url", "impersonate"),
     [
