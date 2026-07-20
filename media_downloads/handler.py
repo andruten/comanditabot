@@ -1,6 +1,7 @@
 """Telegram handler that replies to supported public-media links."""
 
 import asyncio
+import logging
 import os
 import subprocess
 from collections import defaultdict, deque
@@ -15,9 +16,10 @@ from telegram.constants import ChatAction
 from telegram.ext import CallbackContext, MessageHandler, filters
 
 from .downloader import DownloadError, MediaDownloader, YtDlpExtractor
-from .urls import supported_urls
+from .urls import classify_url, supported_urls
 
 MAX_TELEGRAM_THUMBNAIL_SIZE_BYTES = 200 * 1024
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -81,8 +83,13 @@ class VideoThumbnailGenerator:
                 stderr=subprocess.DEVNULL,
             )
         except (OSError, subprocess.CalledProcessError):
+            logger.warning("Could not generate thumbnail for %s", video_path.name)
             return None
-        return thumbnail_path if thumbnail_path.is_file() and thumbnail_path.stat().st_size else None
+        if thumbnail_path.is_file() and thumbnail_path.stat().st_size:
+            logger.info("Generated thumbnail for %s", video_path.name)
+            return thumbnail_path
+        logger.warning("No thumbnail frame generated for %s", video_path.name)
+        return None
 
 
 class MediaDownloadHandler:
@@ -103,11 +110,14 @@ class MediaDownloadHandler:
             return
 
         for url in supported_urls(message.text):
+            platform = classify_url(url)
             if not self._rate_limiter.allow(str(update.effective_user.id)):
+                logger.warning("Rate limit reached for %s media", platform)
                 await message.reply_text("Has alcanzado el límite de descargas. Inténtalo más tarde.")
                 return
 
             try:
+                logger.info("Starting %s media download", platform)
                 await context.bot.send_chat_action(
                     chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_DOCUMENT
                 )
@@ -115,11 +125,13 @@ class MediaDownloadHandler:
                     media_files = await asyncio.to_thread(
                         self._downloader.download, url, Path(temporary_dir)
                     )
+                    logger.info("Downloaded %s attachment(s) for %s media", len(media_files), platform)
                     for media_file in media_files:
                         await _reply_with_attachment(
                             message, media_file.path, self._thumbnail_generator
                         )
-            except DownloadError:
+            except DownloadError as error:
+                logger.warning("Failed %s media download: %s", platform, error)
                 await message.reply_text("No se ha podido descargar este enlace.")
 
 
@@ -146,8 +158,10 @@ async def _reply_with_attachment(message, path: Path, thumbnail_generator) -> No
             ):
                 with thumbnail_path.open("rb") as thumbnail:
                     await message.reply_video(attachment, thumbnail=thumbnail)
+                logger.info("Sent video attachment with thumbnail: %s", path.name)
             else:
                 await message.reply_video(attachment)
+                logger.info("Sent video attachment without thumbnail: %s", path.name)
         elif suffix == ".gif":
             await message.reply_animation(attachment)
         else:

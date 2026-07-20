@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -128,6 +129,17 @@ async def test_download_failure_replies_with_a_concise_error():
     await handler.process(update_for(message), context_for_bot())
 
     assert message.text_replies == ["No se ha podido descargar este enlace."]
+
+
+@pytest.mark.asyncio
+async def test_successful_download_logs_the_platform_and_attachment_count(caplog):
+    caplog.set_level(logging.INFO, logger="media_downloads.handler")
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = MediaDownloadHandler(downloader=FakeDownloader(["image.jpg"]))
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert "Downloaded 1 attachment(s) for x media" in caplog.messages
 
 
 @pytest.mark.asyncio

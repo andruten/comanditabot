@@ -34,9 +34,9 @@ def classify_url(raw_url: str) -> Platform | None:
         path_parts, parsed.query
     ):
         return Platform.FACEBOOK
-    if hostname in {"tiktok.com", "vm.tiktok.com", "vt.tiktok.com"} and _is_tiktok_media(
-        path_parts
-    ):
+    if hostname in {"vm.tiktok.com", "vt.tiktok.com"} and path_parts:
+        return Platform.TIKTOK
+    if hostname == "tiktok.com" and _is_tiktok_media(path_parts):
         return Platform.TIKTOK
     return None
 

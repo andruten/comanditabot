@@ -1,10 +1,13 @@
 """Safe, temporary public-media downloads backed by yt-dlp."""
 
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 from typing import Protocol
 
 import yt_dlp
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadError(Exception):
@@ -51,6 +54,7 @@ class YtDlpExtractor:
         self._max_file_size_bytes = max_file_size_bytes
 
     def extract(self, url: str, output_directory: Path) -> list[Path]:
+        logger.info("yt-dlp starting public media extraction for %s", _loggable_url(url))
         options = {
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
             "noplaylist": False,
@@ -66,9 +70,21 @@ class YtDlpExtractor:
             with yt_dlp.YoutubeDL(options) as downloader:
                 downloader.extract_info(url, download=True)
         except yt_dlp.utils.DownloadError as error:
+            logger.warning("yt-dlp failed to download %s: %s", _loggable_url(url), error)
             raise DownloadError("The media could not be downloaded") from error
 
-        return sorted(
+        downloaded_paths = sorted(
             (path for path in output_directory.iterdir() if path.is_file()),
             key=lambda path: path.stat().st_mtime_ns,
         )
+        logger.info(
+            "yt-dlp completed %s file(s) for %s: %s",
+            len(downloaded_paths),
+            _loggable_url(url),
+            ", ".join(path.name for path in downloaded_paths),
+        )
+        return downloaded_paths
+
+
+def _loggable_url(url: str) -> str:
+    return url.split("?", maxsplit=1)[0].split("#", maxsplit=1)[0]

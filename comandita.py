@@ -25,6 +25,7 @@ app_log_level = getattr(logging, os.environ.get("LOG_LEVEL", "INFO"), logging.IN
 logging.getLogger("chat_statistics").setLevel(app_log_level)
 logging.getLogger("clients").setLevel(app_log_level)
 logging.getLogger("commands").setLevel(app_log_level)
+logging.getLogger("media_downloads").setLevel(app_log_level)
 logging.getLogger("reactions").setLevel(app_log_level)
 logger = logging.getLogger(__name__)
 
