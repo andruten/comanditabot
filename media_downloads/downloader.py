@@ -54,6 +54,10 @@ class YtDlpExtractor:
         options = {
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
             "noplaylist": False,
+            "format": (
+                "best[ext=mp4][vcodec!*=vp9][acodec!=none]"
+                "/best[ext=mp4][acodec!=none]/best"
+            ),
             "max_filesize": self._max_file_size_bytes,
             "quiet": True,
             "no_warnings": True,
