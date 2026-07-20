@@ -16,6 +16,7 @@ class RecordingMessage:
         self.text = text
         self.photo_replies = []
         self.video_replies = []
+        self.video_thumbnails = []
         self.animation_replies = []
         self.document_replies = []
         self.text_replies = []
@@ -23,8 +24,9 @@ class RecordingMessage:
     async def reply_photo(self, photo):
         self.photo_replies.append(Path(photo.name).name)
 
-    async def reply_video(self, video):
+    async def reply_video(self, video, thumbnail=None):
         self.video_replies.append(Path(video.name).name)
+        self.video_thumbnails.append(Path(thumbnail.name).name if thumbnail else None)
 
     async def reply_animation(self, animation):
         self.animation_replies.append(Path(animation.name).name)
@@ -52,6 +54,18 @@ class FakeDownloader:
 class FailingDownloader:
     def download(self, url, output_directory):
         raise DownloadError("not available")
+
+
+class FakeThumbnailGenerator:
+    def generate(self, video_path):
+        thumbnail = video_path.with_suffix(".thumbnail.jpg")
+        thumbnail.write_bytes(b"thumbnail")
+        return thumbnail
+
+
+class NoThumbnailGenerator:
+    def generate(self, video_path):
+        return None
 
 
 def update_for(message, user_id=42):
@@ -107,6 +121,34 @@ async def test_download_failure_replies_with_a_concise_error():
     await handler.process(update_for(message), context_for_bot())
 
     assert message.text_replies == ["No se ha podido descargar este enlace."]
+
+
+@pytest.mark.asyncio
+async def test_video_reply_includes_a_generated_thumbnail():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = MediaDownloadHandler(
+        downloader=FakeDownloader(["clip.mp4"]),
+        thumbnail_generator=FakeThumbnailGenerator(),
+    )
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.video_replies == ["clip.mp4"]
+    assert message.video_thumbnails == ["clip.thumbnail.jpg"]
+
+
+@pytest.mark.asyncio
+async def test_video_reply_still_sends_when_thumbnail_generation_fails():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = MediaDownloadHandler(
+        downloader=FakeDownloader(["clip.mp4"]),
+        thumbnail_generator=NoThumbnailGenerator(),
+    )
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.video_replies == ["clip.mp4"]
+    assert message.video_thumbnails == [None]
 
 
 @pytest.mark.asyncio

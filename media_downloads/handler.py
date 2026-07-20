@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import subprocess
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -50,8 +51,40 @@ class SlidingWindowRateLimiter:
         return True
 
 
+class VideoThumbnailGenerator:
+    def generate(self, video_path: Path) -> Path | None:
+        thumbnail_path = video_path.with_suffix(".thumbnail.jpg")
+        try:
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-ss",
+                    "1",
+                    "-i",
+                    str(video_path),
+                    "-frames:v",
+                    "1",
+                    "-vf",
+                    "scale=320:-2",
+                    "-q:v",
+                    "5",
+                    str(thumbnail_path),
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except (OSError, subprocess.CalledProcessError):
+            return None
+        return thumbnail_path if thumbnail_path.is_file() and thumbnail_path.stat().st_size else None
+
+
 class MediaDownloadHandler:
-    def __init__(self, *, downloader=None, rate_limiter=None) -> None:
+    def __init__(self, *, downloader=None, rate_limiter=None, thumbnail_generator=None) -> None:
         settings = MediaSettings.from_env(os.environ)
         self._downloader = downloader or MediaDownloader(
             extractor=YtDlpExtractor(max_file_size_bytes=settings.max_file_size_bytes),
@@ -60,6 +93,7 @@ class MediaDownloadHandler:
         self._rate_limiter = rate_limiter or SlidingWindowRateLimiter(
             limit=settings.max_downloads_per_minute, period_seconds=60
         )
+        self._thumbnail_generator = thumbnail_generator or VideoThumbnailGenerator()
 
     async def process(self, update: Update, context: CallbackContext) -> None:
         message = update.effective_message
@@ -80,7 +114,9 @@ class MediaDownloadHandler:
                         self._downloader.download, url, Path(temporary_dir)
                     )
                     for media_file in media_files:
-                        await _reply_with_attachment(message, media_file.path)
+                        await _reply_with_attachment(
+                            message, media_file.path, self._thumbnail_generator
+                        )
             except DownloadError:
                 await message.reply_text("No se ha podido descargar este enlace.")
 
@@ -94,13 +130,18 @@ class MediaDownloadHandlerFactory(MessageHandler):
         await self._handler.process(update, context)
 
 
-async def _reply_with_attachment(message, path: Path) -> None:
+async def _reply_with_attachment(message, path: Path, thumbnail_generator) -> None:
     suffix = path.suffix.lower()
     with path.open("rb") as attachment:
         if suffix in {".jpg", ".jpeg", ".png", ".webp"}:
             await message.reply_photo(attachment)
         elif suffix in {".mp4", ".mov", ".m4v", ".webm"}:
-            await message.reply_video(attachment)
+            thumbnail_path = await asyncio.to_thread(thumbnail_generator.generate, path)
+            if thumbnail_path:
+                with thumbnail_path.open("rb") as thumbnail:
+                    await message.reply_video(attachment, thumbnail=thumbnail)
+            else:
+                await message.reply_video(attachment)
         elif suffix == ".gif":
             await message.reply_animation(attachment)
         else:
