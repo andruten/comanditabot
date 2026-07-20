@@ -162,3 +162,35 @@ def test_extractor_rejects_youtube_videos_longer_than_ten_minutes(monkeypatch, t
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    ("url", "impersonate"),
+    [
+        ("https://x.com/alice/status/1", "chrome"),
+        ("https://twitter.com/alice/status/1", "chrome"),
+        ("https://instagram.com/p/example", None),
+        ("https://youtube.com/shorts/example", None),
+    ],
+)
+def test_extractor_uses_chrome_impersonation_only_for_x(monkeypatch, tmp_path, url, impersonate):
+    options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, settings):
+            options.update(settings)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            return None
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
+
+    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(url, tmp_path)
+
+    assert options.get("impersonate") == impersonate

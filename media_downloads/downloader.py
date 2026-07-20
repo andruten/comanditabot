@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import logging
 from pathlib import Path
 from typing import Protocol
+from urllib.parse import urlsplit
 
 import yt_dlp
 
@@ -70,6 +71,9 @@ class YtDlpExtractor:
             "quiet": True,
             "no_warnings": True,
         }
+        if _is_x_url(url):
+            options["impersonate"] = "chrome"
+            logger.info("yt-dlp using Chrome impersonation for public X media")
         try:
             with yt_dlp.YoutubeDL(options) as downloader:
                 downloader.extract_info(url, download=True)
@@ -108,3 +112,10 @@ def _youtube_duration_filter(info: dict, *, incomplete: bool) -> str | None:
     if duration > YOUTUBE_MAX_DURATION_SECONDS:
         return "YouTube videos longer than 10 minutes are not supported"
     return None
+
+
+def _is_x_url(url: str) -> bool:
+    hostname = urlsplit(url).hostname
+    if not hostname:
+        return False
+    return hostname.lower().removeprefix("www.") in {"x.com", "twitter.com"}
