@@ -122,6 +122,27 @@ async def test_unsupported_link_is_silent():
 
 
 @pytest.mark.asyncio
+async def test_youtube_link_is_silent_when_the_platform_is_disabled(monkeypatch):
+    class RecordingDownloader:
+        def __init__(self):
+            self.urls = []
+
+        def download(self, url, output_directory):
+            self.urls.append(url)
+            return []
+
+    monkeypatch.setenv("MEDIA_ENABLE_YOUTUBE", "false")
+    downloader = RecordingDownloader()
+    message = RecordingMessage("https://youtube.com/shorts/example")
+    handler = MediaDownloadHandler(downloader=downloader)
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert downloader.urls == []
+    assert message.text_replies == []
+
+
+@pytest.mark.asyncio
 async def test_download_failure_replies_with_a_concise_error():
     message = RecordingMessage("https://x.com/alice/status/1")
     handler = MediaDownloadHandler(downloader=FailingDownloader())

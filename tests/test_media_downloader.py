@@ -90,6 +90,29 @@ def test_extractor_keeps_all_items_when_a_url_has_multiple_media(monkeypatch, tm
     assert options.get("noplaylist") is not True
 
 
+def test_extractor_ignores_missing_formats_inside_instagram_carousels(monkeypatch, tmp_path):
+    options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, settings):
+            options.update(settings)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            return None
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
+
+    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract("https://instagram.com/p/example", tmp_path)
+
+    assert options["ignore_no_formats_error"] is True
+
+
 def test_extractor_does_not_expand_youtube_playlists(monkeypatch, tmp_path):
     options = {}
 

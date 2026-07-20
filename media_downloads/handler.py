@@ -16,7 +16,7 @@ from telegram.constants import ChatAction
 from telegram.ext import CallbackContext, MessageHandler, filters
 
 from .downloader import DownloadError, MediaDownloader, YtDlpExtractor
-from .urls import classify_url, supported_urls
+from .urls import Platform, classify_url, supported_urls
 
 MAX_TELEGRAM_THUMBNAIL_SIZE_BYTES = 200 * 1024
 logger = logging.getLogger(__name__)
@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class MediaSettings:
     max_file_size_bytes: int
     max_downloads_per_minute: int
+    youtube_enabled: bool
     youtube_pot_provider_url: str | None
 
     @classmethod
@@ -35,6 +36,7 @@ class MediaSettings:
             max_downloads_per_minute=_positive_int(
                 env, "MEDIA_MAX_DOWNLOADS_PER_MINUTE", default=10
             ),
+            youtube_enabled=_boolean(env, "MEDIA_ENABLE_YOUTUBE", default=True),
             youtube_pot_provider_url=env.get("YOUTUBE_POT_PROVIDER_URL") or None,
         )
 
@@ -107,6 +109,7 @@ class MediaDownloadHandler:
         self._rate_limiter = rate_limiter or SlidingWindowRateLimiter(
             limit=settings.max_downloads_per_minute, period_seconds=60
         )
+        self._youtube_enabled = settings.youtube_enabled
         self._thumbnail_generator = thumbnail_generator or VideoThumbnailGenerator()
 
     async def process(self, update: Update, context: CallbackContext) -> None:
@@ -116,6 +119,9 @@ class MediaDownloadHandler:
 
         for url in supported_urls(message.text):
             platform = classify_url(url)
+            if platform is Platform.YOUTUBE and not self._youtube_enabled:
+                logger.info("Ignoring YouTube media because it is disabled")
+                continue
             if not self._rate_limiter.allow(str(update.effective_user.id)):
                 logger.warning("Rate limit reached for %s media", platform)
                 await message.reply_text("Has alcanzado el límite de descargas. Inténtalo más tarde.")
@@ -182,3 +188,14 @@ def _positive_int(env: Mapping[str, str], name: str, *, default: int) -> int:
     if value <= 0:
         raise ValueError(f"{name} must be a positive integer")
     return value
+
+
+def _boolean(env: Mapping[str, str], name: str, *, default: bool) -> bool:
+    raw_value = env.get(name)
+    if raw_value is None:
+        return default
+    if raw_value.lower() == "true":
+        return True
+    if raw_value.lower() == "false":
+        return False
+    raise ValueError(f"{name} must be true or false")
