@@ -7,7 +7,8 @@ import pytest
 from media_downloads.downloader import DownloadError, MediaFile
 from media_downloads.handler import (
     MediaDownloadHandler,
-    MediaDownloadHandlerFactory,
+    MediaMessageHandler,
+    MediaReplyDispatcher,
     SlidingWindowRateLimiter,
 )
 
@@ -84,6 +85,17 @@ def update_for(message, user_id=42):
     )
 
 
+def _default_handler(**overrides):
+    defaults = dict(
+        downloader=FakeDownloader(["image.jpg"]),
+        rate_limiter=SlidingWindowRateLimiter(limit=10, period_seconds=60),
+        reply_dispatcher=MediaReplyDispatcher(),
+        youtube_enabled=True,
+    )
+    defaults.update(overrides)
+    return MediaDownloadHandler(**defaults)
+
+
 def context_for_bot():
     async def send_chat_action(**kwargs):
         return None
@@ -103,7 +115,7 @@ def context_for_bot():
 )
 async def test_supported_link_replies_with_matching_attachment(name, reply_attribute):
     message = RecordingMessage("https://x.com/alice/status/1")
-    handler = MediaDownloadHandler(downloader=FakeDownloader([name]))
+    handler = _default_handler(downloader=FakeDownloader([name]))
 
     await handler.process(update_for(message), context_for_bot())
 
@@ -113,7 +125,7 @@ async def test_supported_link_replies_with_matching_attachment(name, reply_attri
 @pytest.mark.asyncio
 async def test_unsupported_link_is_silent():
     message = RecordingMessage("https://example.com/video")
-    handler = MediaDownloadHandler(downloader=FakeDownloader(["image.jpg"]))
+    handler = _default_handler(downloader=FakeDownloader(["image.jpg"]))
 
     await handler.process(update_for(message), context_for_bot())
 
@@ -122,7 +134,7 @@ async def test_unsupported_link_is_silent():
 
 
 @pytest.mark.asyncio
-async def test_youtube_link_is_silent_when_the_platform_is_disabled(monkeypatch):
+async def test_youtube_link_is_silent_when_the_platform_is_disabled():
     class RecordingDownloader:
         def __init__(self):
             self.urls = []
@@ -131,10 +143,9 @@ async def test_youtube_link_is_silent_when_the_platform_is_disabled(monkeypatch)
             self.urls.append(url)
             return []
 
-    monkeypatch.setenv("MEDIA_ENABLE_YOUTUBE", "false")
     downloader = RecordingDownloader()
     message = RecordingMessage("https://youtube.com/shorts/example")
-    handler = MediaDownloadHandler(downloader=downloader)
+    handler = _default_handler(downloader=downloader, youtube_enabled=False)
 
     await handler.process(update_for(message), context_for_bot())
 
@@ -145,7 +156,7 @@ async def test_youtube_link_is_silent_when_the_platform_is_disabled(monkeypatch)
 @pytest.mark.asyncio
 async def test_download_failure_replies_with_a_concise_error():
     message = RecordingMessage("https://x.com/alice/status/1")
-    handler = MediaDownloadHandler(downloader=FailingDownloader())
+    handler = _default_handler(downloader=FailingDownloader())
 
     await handler.process(update_for(message), context_for_bot())
 
@@ -156,7 +167,7 @@ async def test_download_failure_replies_with_a_concise_error():
 async def test_successful_download_logs_the_platform_and_attachment_count(caplog):
     caplog.set_level(logging.INFO, logger="media_downloads.handler")
     message = RecordingMessage("https://x.com/alice/status/1")
-    handler = MediaDownloadHandler(downloader=FakeDownloader(["image.jpg"]))
+    handler = _default_handler(downloader=FakeDownloader(["image.jpg"]))
 
     await handler.process(update_for(message), context_for_bot())
 
@@ -166,9 +177,11 @@ async def test_successful_download_logs_the_platform_and_attachment_count(caplog
 @pytest.mark.asyncio
 async def test_video_reply_includes_a_generated_thumbnail():
     message = RecordingMessage("https://x.com/alice/status/1")
-    handler = MediaDownloadHandler(
+    handler = _default_handler(
         downloader=FakeDownloader(["clip.mp4"]),
-        thumbnail_generator=FakeThumbnailGenerator(),
+        reply_dispatcher=MediaReplyDispatcher(
+            thumbnail_generator=FakeThumbnailGenerator()
+        ),
     )
 
     await handler.process(update_for(message), context_for_bot())
@@ -180,9 +193,11 @@ async def test_video_reply_includes_a_generated_thumbnail():
 @pytest.mark.asyncio
 async def test_video_reply_still_sends_when_thumbnail_generation_fails():
     message = RecordingMessage("https://x.com/alice/status/1")
-    handler = MediaDownloadHandler(
+    handler = _default_handler(
         downloader=FakeDownloader(["clip.mp4"]),
-        thumbnail_generator=NoThumbnailGenerator(),
+        reply_dispatcher=MediaReplyDispatcher(
+            thumbnail_generator=NoThumbnailGenerator()
+        ),
     )
 
     await handler.process(update_for(message), context_for_bot())
@@ -194,9 +209,11 @@ async def test_video_reply_still_sends_when_thumbnail_generation_fails():
 @pytest.mark.asyncio
 async def test_video_reply_omits_a_thumbnail_that_is_too_large():
     message = RecordingMessage("https://x.com/alice/status/1")
-    handler = MediaDownloadHandler(
+    handler = _default_handler(
         downloader=FakeDownloader(["clip.mp4"]),
-        thumbnail_generator=OversizedThumbnailGenerator(),
+        reply_dispatcher=MediaReplyDispatcher(
+            thumbnail_generator=OversizedThumbnailGenerator()
+        ),
     )
 
     await handler.process(update_for(message), context_for_bot())
@@ -209,22 +226,28 @@ async def test_video_reply_omits_a_thumbnail_that_is_too_large():
 async def test_rate_limiter_replies_without_starting_a_fourth_download():
     message = RecordingMessage("https://x.com/alice/status/1")
     limiter = SlidingWindowRateLimiter(limit=3, period_seconds=60)
-    handler = MediaDownloadHandler(downloader=FakeDownloader(["image.jpg"]), rate_limiter=limiter)
+    handler = _default_handler(
+        downloader=FakeDownloader(["image.jpg"]), rate_limiter=limiter
+    )
 
     for _ in range(4):
         await handler.process(update_for(message), context_for_bot())
 
-    assert message.text_replies == ["Has alcanzado el límite de descargas. Inténtalo más tarde."]
+    assert message.text_replies == [
+        "Has alcanzado el límite de descargas. Inténtalo más tarde."
+    ]
 
 
 def test_media_handler_has_priority_over_reactions():
     from comandita import configure_handlers
 
     application = SimpleNamespace(handlers=[])
-    application.add_handler = lambda handler, group=0: application.handlers.append((group, handler))
+    application.add_handler = lambda handler, group=0: application.handlers.append(
+        (group, handler)
+    )
 
     configure_handlers(application)
 
     group, handler = application.handlers[0]
     assert group == -1
-    assert isinstance(handler, MediaDownloadHandlerFactory)
+    assert isinstance(handler, MediaMessageHandler)
