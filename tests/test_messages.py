@@ -81,13 +81,17 @@ async def test_reaction_handler_skips_supported_media_links(monkeypatch):
     def should_not_process(_message):
         nonlocal called
         called = True
-        raise AssertionError("A supported media link must not reach the reactions registry")
+        raise AssertionError(
+            "A supported media link must not reach the reactions registry"
+        )
 
     monkeypatch.setattr(ReactionRegistry, "process_message", should_not_process)
 
     await handler.process(
         SimpleNamespace(
-            effective_message=SimpleNamespace(text="https://www.instagram.com/p/carousel/"),
+            effective_message=SimpleNamespace(
+                text="https://www.instagram.com/p/carousel/"
+            ),
         ),
         SimpleNamespace(),
     )

@@ -45,10 +45,17 @@ class MediaDownloader:
         media_files = []
         for path in paths:
             resolved_path = path.resolve()
-            if not resolved_path.is_relative_to(output_root) or not resolved_path.is_file():
-                raise DownloadError("Downloaded media is outside the temporary directory")
+            if (
+                not resolved_path.is_relative_to(output_root)
+                or not resolved_path.is_file()
+            ):
+                raise DownloadError(
+                    "Downloaded media is outside the temporary directory"
+                )
             if resolved_path.stat().st_size > self._max_file_size_bytes:
-                raise MediaTooLargeError("Downloaded media is larger than the configured limit")
+                raise MediaTooLargeError(
+                    "Downloaded media is larger than the configured limit"
+                )
             media_files.append(MediaFile(path=resolved_path))
         return media_files
 
@@ -61,7 +68,9 @@ class YtDlpExtractor:
         self._youtube_pot_provider_url = youtube_pot_provider_url
 
     def extract(self, url: str, output_directory: Path) -> list[Path]:
-        logger.info("yt-dlp starting public media extraction for %s", _loggable_url(url))
+        logger.info(
+            "yt-dlp starting public media extraction for %s", _loggable_url(url)
+        )
         options = {
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
             "noplaylist": classify_url(url) is Platform.YOUTUBE,
@@ -80,7 +89,9 @@ class YtDlpExtractor:
         if classify_url(url) is Platform.INSTAGRAM:
             options["ignore_no_formats_error"] = True
             options["lazy_playlist"] = True
-            logger.info("yt-dlp will skip unavailable media inside an Instagram carousel")
+            logger.info(
+                "yt-dlp will skip unavailable media inside an Instagram carousel"
+            )
         if (
             classify_url(url) is Platform.YOUTUBE
             and self._youtube_pot_provider_url is not None
@@ -90,12 +101,16 @@ class YtDlpExtractor:
                 "youtubepot-bgutilhttp": {"base_url": [self._youtube_pot_provider_url]},
             }
             options["js_runtimes"] = {"node": {}}
-            logger.info("yt-dlp using the internal PO Token provider for public YouTube media")
+            logger.info(
+                "yt-dlp using the internal PO Token provider for public YouTube media"
+            )
         try:
             with yt_dlp.YoutubeDL(options) as downloader:
                 downloader.extract_info(url, download=True)
         except yt_dlp.utils.DownloadError as error:
-            logger.warning("yt-dlp failed to download %s: %s", _loggable_url(url), error)
+            logger.warning(
+                "yt-dlp failed to download %s: %s", _loggable_url(url), error
+            )
             raise DownloadError("The media could not be downloaded") from error
 
         downloaded_paths = sorted(

@@ -47,7 +47,9 @@ def test_download_rejects_oversized_file(tmp_path):
 
 
 def test_download_rejects_empty_output(tmp_path):
-    downloader = MediaDownloader(extractor=FakeExtractor([]), max_file_size_bytes=45 * MIB)
+    downloader = MediaDownloader(
+        extractor=FakeExtractor([]), max_file_size_bytes=45 * MIB
+    )
 
     with pytest.raises(DownloadError, match="No media"):
         downloader.download("https://x.com/alice/status/1", tmp_path)
@@ -61,7 +63,9 @@ def test_download_rejects_file_outside_temporary_directory(tmp_path):
         def extract(self, url: str, output_directory: Path):
             return [outside_file]
 
-    downloader = MediaDownloader(extractor=UnsafeExtractor(), max_file_size_bytes=45 * MIB)
+    downloader = MediaDownloader(
+        extractor=UnsafeExtractor(), max_file_size_bytes=45 * MIB
+    )
 
     with pytest.raises(DownloadError, match="temporary directory"):
         downloader.download("https://x.com/alice/status/1", tmp_path)
@@ -85,12 +89,16 @@ def test_extractor_keeps_all_items_when_a_url_has_multiple_media(monkeypatch, tm
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract("https://instagram.com/p/example", tmp_path)
+    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+        "https://instagram.com/p/example", tmp_path
+    )
 
     assert options.get("noplaylist") is not True
 
 
-def test_extractor_ignores_missing_formats_inside_instagram_carousels(monkeypatch, tmp_path):
+def test_extractor_ignores_missing_formats_inside_instagram_carousels(
+    monkeypatch, tmp_path
+):
     options = {}
 
     class FakeYoutubeDL:
@@ -108,7 +116,9 @@ def test_extractor_ignores_missing_formats_inside_instagram_carousels(monkeypatc
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract("https://instagram.com/p/example", tmp_path)
+    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+        "https://instagram.com/p/example", tmp_path
+    )
 
     assert options["ignore_no_formats_error"] is True
     assert options["lazy_playlist"] is True
@@ -157,14 +167,18 @@ def test_extractor_prefers_a_telegram_playable_mp4_format(monkeypatch, tmp_path)
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract("https://instagram.com/p/example", tmp_path)
+    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+        "https://instagram.com/p/example", tmp_path
+    )
 
     assert options["format"] == (
         "best[ext=mp4][vcodec!*=vp9][acodec!=none]/best[ext=mp4][acodec!=none]/best"
     )
 
 
-def test_extractor_rejects_youtube_videos_longer_than_ten_minutes(monkeypatch, tmp_path):
+def test_extractor_rejects_youtube_videos_longer_than_ten_minutes(
+    monkeypatch, tmp_path
+):
     options = {}
 
     class FakeYoutubeDL:
@@ -202,7 +216,9 @@ def test_extractor_rejects_youtube_videos_longer_than_ten_minutes(monkeypatch, t
         is None
     )
     assert (
-        match_filter({"webpage_url": "https://youtube.com/watch?v=example"}, incomplete=False)
+        match_filter(
+            {"webpage_url": "https://youtube.com/watch?v=example"}, incomplete=False
+        )
         == "YouTube videos with an unknown duration are not supported"
     )
     assert (
@@ -244,7 +260,9 @@ def test_extractor_uses_the_internal_provider_for_youtube_only(monkeypatch, tmp_
     assert options["js_runtimes"] == {"node": {}}
 
 
-def test_extractor_does_not_configure_the_provider_for_other_platforms(monkeypatch, tmp_path):
+def test_extractor_does_not_configure_the_provider_for_other_platforms(
+    monkeypatch, tmp_path
+):
     options = {}
 
     class FakeYoutubeDL:
@@ -280,7 +298,9 @@ def test_extractor_does_not_configure_the_provider_for_other_platforms(monkeypat
         ("https://youtube.com/shorts/example", None),
     ],
 )
-def test_extractor_uses_chrome_impersonation_only_for_x(monkeypatch, tmp_path, url, impersonate):
+def test_extractor_uses_chrome_impersonation_only_for_x(
+    monkeypatch, tmp_path, url, impersonate
+):
     options = {}
 
     class FakeYoutubeDL:
