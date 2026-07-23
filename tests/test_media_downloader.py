@@ -89,7 +89,7 @@ def test_extractor_keeps_all_items_when_a_url_has_multiple_media(monkeypatch, tm
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+    YtDlpExtractor(max_file_size_bytes=45 * MIB, youtube_pot_provider_url=None).extract(
         "https://instagram.com/p/example", tmp_path
     )
 
@@ -116,7 +116,7 @@ def test_extractor_ignores_missing_formats_inside_instagram_carousels(
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+    YtDlpExtractor(max_file_size_bytes=45 * MIB, youtube_pot_provider_url=None).extract(
         "https://instagram.com/p/example", tmp_path
     )
 
@@ -142,7 +142,7 @@ def test_extractor_does_not_expand_youtube_playlists(monkeypatch, tmp_path):
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+    YtDlpExtractor(max_file_size_bytes=45 * MIB, youtube_pot_provider_url=None).extract(
         "https://youtube.com/watch?v=example&list=playlist", tmp_path
     )
 
@@ -167,7 +167,7 @@ def test_extractor_prefers_a_telegram_playable_mp4_format(monkeypatch, tmp_path)
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+    YtDlpExtractor(max_file_size_bytes=45 * MIB, youtube_pot_provider_url=None).extract(
         "https://instagram.com/p/example", tmp_path
     )
 
@@ -196,7 +196,7 @@ def test_extractor_rejects_youtube_videos_longer_than_ten_minutes(
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(
+    YtDlpExtractor(max_file_size_bytes=45 * MIB, youtube_pot_provider_url=None).extract(
         "https://youtube.com/watch?v=example", tmp_path
     )
 
@@ -318,6 +318,8 @@ def test_extractor_uses_chrome_impersonation_only_for_x(
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(max_file_size_bytes=45 * MIB).extract(url, tmp_path)
+    YtDlpExtractor(max_file_size_bytes=45 * MIB, youtube_pot_provider_url=None).extract(
+        url, tmp_path
+    )
 
     assert options.get("impersonate") == impersonate

@@ -4,7 +4,6 @@ from dataclasses import dataclass
 import logging
 from pathlib import Path
 from typing import Protocol
-from urllib.parse import urlsplit
 
 import yt_dlp
 
@@ -62,7 +61,7 @@ class MediaDownloader:
 
 class YtDlpExtractor:
     def __init__(
-        self, *, max_file_size_bytes: int, youtube_pot_provider_url: str | None = None
+        self, *, max_file_size_bytes: int, youtube_pot_provider_url: str | None
     ) -> None:
         self._max_file_size_bytes = max_file_size_bytes
         self._youtube_pot_provider_url = youtube_pot_provider_url
@@ -71,9 +70,10 @@ class YtDlpExtractor:
         logger.info(
             "yt-dlp starting public media extraction for %s", _loggable_url(url)
         )
+        platform = classify_url(url)
         options = {
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
-            "noplaylist": classify_url(url) is Platform.YOUTUBE,
+            "noplaylist": platform is Platform.YOUTUBE,
             "format": (
                 "best[ext=mp4][vcodec!*=vp9][acodec!=none]"
                 "/best[ext=mp4][acodec!=none]/best"
@@ -83,27 +83,7 @@ class YtDlpExtractor:
             "quiet": True,
             "no_warnings": True,
         }
-        if _is_x_url(url):
-            options["impersonate"] = "chrome"
-            logger.info("yt-dlp using Chrome impersonation for public X media")
-        if classify_url(url) is Platform.INSTAGRAM:
-            options["ignore_no_formats_error"] = True
-            options["lazy_playlist"] = True
-            logger.info(
-                "yt-dlp will skip unavailable media inside an Instagram carousel"
-            )
-        if (
-            classify_url(url) is Platform.YOUTUBE
-            and self._youtube_pot_provider_url is not None
-        ):
-            options["extractor_args"] = {
-                "youtube": {"player_client": ["mweb"]},
-                "youtubepot-bgutilhttp": {"base_url": [self._youtube_pot_provider_url]},
-            }
-            options["js_runtimes"] = {"node": {}}
-            logger.info(
-                "yt-dlp using the internal PO Token provider for public YouTube media"
-            )
+        _apply_platform_options(options, platform, self._youtube_pot_provider_url)
         try:
             with yt_dlp.YoutubeDL(options) as downloader:
                 downloader.extract_info(url, download=True)
@@ -126,6 +106,29 @@ class YtDlpExtractor:
         return downloaded_paths
 
 
+def _apply_platform_options(
+    options: dict,
+    platform: Platform | None,
+    youtube_pot_provider_url: str | None,
+) -> None:
+    if platform is Platform.X:
+        options["impersonate"] = "chrome"
+        logger.info("yt-dlp using Chrome impersonation for public X media")
+    if platform is Platform.INSTAGRAM:
+        options["ignore_no_formats_error"] = True
+        options["lazy_playlist"] = True
+        logger.info("yt-dlp will skip unavailable media inside an Instagram carousel")
+    if platform is Platform.YOUTUBE and youtube_pot_provider_url is not None:
+        options["extractor_args"] = {
+            "youtube": {"player_client": ["mweb"]},
+            "youtubepot-bgutilhttp": {"base_url": [youtube_pot_provider_url]},
+        }
+        options["js_runtimes"] = {"node": {}}
+        logger.info(
+            "yt-dlp using the internal PO Token provider for public YouTube media"
+        )
+
+
 def _loggable_url(url: str) -> str:
     return url.split("?", maxsplit=1)[0].split("#", maxsplit=1)[0]
 
@@ -144,10 +147,3 @@ def _youtube_duration_filter(info: dict, *, incomplete: bool) -> str | None:
     if duration > YOUTUBE_MAX_DURATION_SECONDS:
         return "YouTube videos longer than 10 minutes are not supported"
     return None
-
-
-def _is_x_url(url: str) -> bool:
-    hostname = urlsplit(url).hostname
-    if not hostname:
-        return False
-    return hostname.lower().removeprefix("www.") in {"x.com", "twitter.com"}
