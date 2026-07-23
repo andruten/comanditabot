@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 from reactions.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
@@ -8,6 +10,7 @@ from reactions.reactions import (
     PunishmentReaction,
     RajoyReaction,
     ReactionRegistry,
+    ReactionHandlerFactory,
     ZapateroReaction,
 )
 
@@ -68,3 +71,29 @@ def test_reaction_factory(message, reaction_class):
     reaction_class.probability = 100
     message_instance = ReactionRegistry.process_message(message)
     assert isinstance(message_instance, reaction_class)
+
+
+@pytest.mark.asyncio
+async def test_reaction_handler_skips_supported_media_links(monkeypatch):
+    handler = ReactionHandlerFactory()
+    called = False
+
+    def should_not_process(_message):
+        nonlocal called
+        called = True
+        raise AssertionError(
+            "A supported media link must not reach the reactions registry"
+        )
+
+    monkeypatch.setattr(ReactionRegistry, "process_message", should_not_process)
+
+    await handler.process(
+        SimpleNamespace(
+            effective_message=SimpleNamespace(
+                text="https://www.instagram.com/p/carousel/"
+            ),
+        ),
+        SimpleNamespace(),
+    )
+
+    assert not called

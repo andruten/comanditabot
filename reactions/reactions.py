@@ -11,6 +11,8 @@ from telegram.constants import ChatAction
 from telegram.ext import CallbackContext, MessageHandler
 from telegram.ext import filters
 
+from media_downloads.urls import supported_urls
+
 from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
 
@@ -176,6 +178,8 @@ class ReactionHandlerFactory(MessageHandler):
         super().__init__(filters.TEXT & ~filters.COMMAND, self.process, *args, **kwargs)
 
     async def process(self, update: Update, context: CallbackContext):
+        if supported_urls(update.effective_message.text):
+            return
         try:
             message_class = ReactionRegistry.process_message(
                 update.effective_message.text

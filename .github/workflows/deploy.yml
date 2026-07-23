@@ -16,11 +16,21 @@ permissions:
 
 env:
   REGISTRY: registry.juanmadiaz.com
-  IMAGE_NAME: apps/comanditabot
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image_name: apps/comanditabot
+            context: .
+            build_args: requirements=pro
+            cache_scope: comanditabot
+          - image_name: apps/comanditabot-youtube-pot-provider
+            context: youtube-pot-provider
+            build_args: ""
+            cache_scope: comanditabot-youtube-pot-provider
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          image="${REGISTRY}/${IMAGE_NAME}"
+          image="${REGISTRY}/${{ matrix.image_name }}"
           tags=("${image}:${GITHUB_SHA}")
 
           if [[ "${GITHUB_REF_TYPE}" == "branch" && "${GITHUB_REF_NAME}" == "main" ]]; then
@@ -69,13 +79,12 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context }}
           push: true
-          build-args: |
-            requirements=pro
+          build-args: ${{ matrix.build_args }}
           tags: ${{ steps.image-tags.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
   notify-infra:
     needs: build
