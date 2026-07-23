@@ -8,6 +8,7 @@ from media_downloads.downloader import (
     MediaTooLargeError,
     YtDlpExtractor,
 )
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 MIB = 1024 * 1024
 
@@ -292,8 +293,8 @@ def test_extractor_does_not_configure_the_provider_for_other_platforms(
 @pytest.mark.parametrize(
     ("url", "impersonate"),
     [
-        ("https://x.com/alice/status/1", "chrome"),
-        ("https://twitter.com/alice/status/1", "chrome"),
+        ("https://x.com/alice/status/1", ImpersonateTarget.from_str("chrome")),
+        ("https://twitter.com/alice/status/1", ImpersonateTarget.from_str("chrome")),
         ("https://instagram.com/p/example", None),
         ("https://youtube.com/shorts/example", None),
     ],

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Protocol
 
 import yt_dlp
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 from .urls import Platform, classify_url
 
@@ -112,7 +113,7 @@ def _apply_platform_options(
     youtube_pot_provider_url: str | None,
 ) -> None:
     if platform is Platform.X:
-        options["impersonate"] = "chrome"
+        options["impersonate"] = ImpersonateTarget.from_str("chrome")
         logger.info("yt-dlp using Chrome impersonation for public X media")
     if platform is Platform.INSTAGRAM:
         options["ignore_no_formats_error"] = True
