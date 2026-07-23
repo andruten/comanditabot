@@ -12,7 +12,7 @@ from commands import (
     WeatherInKoreaCommandHandler,
 )
 from commands.chat_statistics import ChatStatisticsCommandHandler
-from media_downloads.handler import MediaDownloadHandlerFactory
+from media_downloads.handler import MediaMessageHandler
 from reactions import ReactionHandlerFactory
 
 load_dotenv()
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def configure_handlers(application):
-    application.add_handler(MediaDownloadHandlerFactory(), group=-1)
+    application.add_handler(MediaMessageHandler(), group=-1)
 
     # Commands
     application.add_handler(MiMiMiCommandHandler())
