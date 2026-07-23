@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+import datetime
 from random import randint
 
 from telegram import Bot, Message, Update
@@ -46,7 +46,7 @@ class ChatStatistics(metaclass=SingletonMeta):
     def get_daily_statistics(self, chat_id: int) -> DailyStatistics:
         if chat_id not in self._daily_counter:
             self._daily_counter[chat_id] = {}
-        today = datetime.utcnow().today().strftime("%Y-%m-%d")
+        today = datetime.datetime.now(datetime.UTC).today().strftime("%Y-%m-%d")
         if today not in self._daily_counter[chat_id]:
             self._daily_counter[chat_id][today] = DailyStatistics()
         return self._daily_counter[chat_id][today]
