@@ -1,4 +1,4 @@
-import logging
+import logging.config
 import os
 
 from dotenv import load_dotenv
@@ -17,16 +17,38 @@ from reactions import ReactionHandlerFactory
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-app_log_level = getattr(logging, os.environ.get("LOG_LEVEL", "INFO"), logging.INFO)
-logging.getLogger("chat_statistics").setLevel(app_log_level)
-logging.getLogger("clients").setLevel(app_log_level)
-logging.getLogger("commands").setLevel(app_log_level)
-logging.getLogger("media_downloads").setLevel(app_log_level)
-logging.getLogger("reactions").setLevel(app_log_level)
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "chat_statistics": {"level": LOG_LEVEL},
+        "clients": {"level": LOG_LEVEL},
+        "commands": {"level": LOG_LEVEL},
+        "media_downloads": {"level": LOG_LEVEL},
+        "reactions": {"level": LOG_LEVEL},
+        "telegram": {"level": "WARNING"},
+        "httpx": {"level": "WARNING"},
+    },
+}
+
+logging.config.dictConfig(LOGGING)
 logger = logging.getLogger(__name__)
 
 
