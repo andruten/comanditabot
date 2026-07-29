@@ -15,7 +15,12 @@ from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import CallbackContext, MessageHandler, filters
 
-from .downloader import DownloadError, MediaDownloader, YtDlpExtractor
+from .downloader import (
+    DownloadError,
+    MediaDownloader,
+    MediaTooLargeError,
+    YtDlpExtractor,
+)
 from .urls import Platform, classify_url, supported_urls
 
 MAX_TELEGRAM_THUMBNAIL_SIZE_BYTES = 200 * 1024
@@ -155,7 +160,6 @@ class MediaDownloadHandler:
         return cls(
             downloader=MediaDownloader(
                 extractor=YtDlpExtractor(
-                    max_file_size_bytes=settings.max_file_size_bytes,
                     youtube_pot_provider_url=settings.youtube_pot_provider_url,
                 ),
                 max_file_size_bytes=settings.max_file_size_bytes,
@@ -202,6 +206,11 @@ class MediaDownloadHandler:
                     )
                     for media_file in media_files:
                         await self._reply_dispatcher.send(message, media_file.path)
+            except MediaTooLargeError:
+                logger.warning("Media too large for %s media", platform)
+                await message.reply_text(
+                    "El archivo es demasiado grande, entra en el enlace para verlo."
+                )
             except DownloadError as error:
                 logger.warning("Failed %s media download: %s", platform, error)
                 await message.reply_text("No se ha podido descargar este enlace.")
