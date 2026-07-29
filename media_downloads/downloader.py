@@ -61,10 +61,7 @@ class MediaDownloader:
 
 
 class YtDlpExtractor:
-    def __init__(
-        self, *, max_file_size_bytes: int, youtube_pot_provider_url: str | None
-    ) -> None:
-        self._max_file_size_bytes = max_file_size_bytes
+    def __init__(self, *, youtube_pot_provider_url: str | None) -> None:
         self._youtube_pot_provider_url = youtube_pot_provider_url
 
     def extract(self, url: str, output_directory: Path) -> list[Path]:
@@ -79,7 +76,6 @@ class YtDlpExtractor:
                 "best[ext=mp4][vcodec!*=vp9][acodec!=none]"
                 "/best[ext=mp4][acodec!=none]/best"
             ),
-            "max_filesize": self._max_file_size_bytes,
             "match_filter": _youtube_duration_filter,
             "quiet": True,
             "no_warnings": True,
