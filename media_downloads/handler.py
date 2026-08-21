@@ -12,7 +12,7 @@ from time import monotonic
 from typing import Mapping
 
 from telegram import Update
-from telegram.constants import ChatAction
+from telegram.constants import ChatAction, ReactionEmoji
 from telegram.ext import CallbackContext, MessageHandler, filters
 
 from .downloader import (
@@ -176,7 +176,12 @@ class MediaDownloadHandler:
         if not message or not message.text or not update.effective_user:
             return
 
-        for url in supported_urls(message.text):
+        urls = supported_urls(message.text)
+        if not urls:
+            return
+
+        await message.set_reaction(ReactionEmoji.EYES)
+        for url in urls:
             platform = classify_url(url)
             if platform is Platform.YOUTUBE and not self._youtube_enabled:
                 logger.info("Ignoring YouTube media because it is disabled")
@@ -206,14 +211,13 @@ class MediaDownloadHandler:
                     )
                     for media_file in media_files:
                         await self._reply_dispatcher.send(message, media_file.path)
+                    await message.set_reaction(ReactionEmoji.THUMBS_UP)
             except MediaTooLargeError:
                 logger.warning("Media too large for %s media", platform)
-                await message.reply_text(
-                    "El archivo es demasiado grande, entra en el enlace para verlo."
-                )
+                await message.set_reaction(ReactionEmoji.THUMBS_DOWN)
             except DownloadError as error:
                 logger.warning("Failed %s media download: %s", platform, error)
-                await message.reply_text("No se ha podido descargar este enlace.")
+                await message.set_reaction(ReactionEmoji.THUMBS_DOWN)
 
 
 class MediaMessageHandler(MessageHandler):

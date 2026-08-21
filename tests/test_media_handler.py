@@ -3,8 +3,13 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from telegram.constants import ReactionEmoji
 
-from media_downloads.downloader import DownloadError, MediaFile
+from media_downloads.downloader import (
+    DownloadError,
+    MediaFile,
+    MediaTooLargeError,
+)
 from media_downloads.handler import (
     MediaDownloadHandler,
     MediaMessageHandler,
@@ -22,6 +27,7 @@ class RecordingMessage:
         self.animation_replies = []
         self.document_replies = []
         self.text_replies = []
+        self.reactions = []
 
     async def reply_photo(self, photo):
         self.photo_replies.append(Path(photo.name).name)
@@ -38,6 +44,9 @@ class RecordingMessage:
 
     async def reply_text(self, text):
         self.text_replies.append(text)
+
+    async def set_reaction(self, reaction):
+        self.reactions.append(reaction)
 
 
 class FakeDownloader:
@@ -131,10 +140,11 @@ async def test_unsupported_link_is_silent():
 
     assert message.photo_replies == []
     assert message.text_replies == []
+    assert message.reactions == []
 
 
 @pytest.mark.asyncio
-async def test_youtube_link_is_silent_when_the_platform_is_disabled():
+async def test_disabled_youtube_link_only_reacts_with_eyes():
     class RecordingDownloader:
         def __init__(self):
             self.urls = []
@@ -151,16 +161,62 @@ async def test_youtube_link_is_silent_when_the_platform_is_disabled():
 
     assert downloader.urls == []
     assert message.text_replies == []
+    assert message.reactions == [ReactionEmoji.EYES]
 
 
 @pytest.mark.asyncio
-async def test_download_failure_replies_with_a_concise_error():
+async def test_download_failure_reacts_with_thumbs_down():
     message = RecordingMessage("https://x.com/alice/status/1")
     handler = _default_handler(downloader=FailingDownloader())
 
     await handler.process(update_for(message), context_for_bot())
 
-    assert message.text_replies == ["No se ha podido descargar este enlace."]
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_DOWN]
+    assert message.text_replies == []
+
+
+class OversizedDownloader:
+    def download(self, url, output_directory):
+        raise MediaTooLargeError("too large")
+
+
+@pytest.mark.asyncio
+async def test_oversized_media_reacts_with_thumbs_down():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = _default_handler(downloader=OversizedDownloader())
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_DOWN]
+    assert message.text_replies == []
+
+
+@pytest.mark.asyncio
+async def test_successful_download_reacts_with_eyes_then_thumbs_up():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = _default_handler(downloader=FakeDownloader(["image.jpg"]))
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_UP]
+    assert message.text_replies == []
+
+
+@pytest.mark.asyncio
+async def test_multiple_links_react_with_eyes_once_and_thumbs_up_per_link():
+    message = RecordingMessage(
+        "mira https://x.com/alice/status/1 y https://x.com/bob/status/2"
+    )
+    handler = _default_handler(downloader=FakeDownloader(["image.jpg"]))
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.photo_replies == ["image.jpg", "image.jpg"]
+    assert message.reactions == [
+        ReactionEmoji.EYES,
+        ReactionEmoji.THUMBS_UP,
+        ReactionEmoji.THUMBS_UP,
+    ]
 
 
 @pytest.mark.asyncio
