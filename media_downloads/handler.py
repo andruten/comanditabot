@@ -198,13 +198,6 @@ class MediaDownloadHandler:
                 await context.bot.send_chat_action(
                     chat_id=update.effective_chat.id, action=ChatAction.UPLOAD_DOCUMENT
                 )
-            except MediaTooLargeError:
-                logger.warning("Media too large for %s media", platform)
-                await message.set_reaction(ReactionEmoji.THUMBS_DOWN)
-            except DownloadError as error:
-                logger.warning("Failed %s media download: %s", platform, error)
-                await message.set_reaction(ReactionEmoji.THUMBS_DOWN)
-            else:
                 with TemporaryDirectory(
                     prefix="comandita-media-", dir="/tmp"
                 ) as temporary_dir:
@@ -219,6 +212,12 @@ class MediaDownloadHandler:
                     for media_file in media_files:
                         await self._reply_dispatcher.send(message, media_file.path)
                     await message.set_reaction(ReactionEmoji.THUMBS_UP)
+            except MediaTooLargeError:
+                logger.warning("Media too large for %s media", platform)
+                await message.set_reaction(ReactionEmoji.THUMBS_DOWN)
+            except DownloadError as error:
+                logger.warning("Failed %s media download: %s", platform, error)
+                await message.set_reaction(ReactionEmoji.THUMBS_DOWN)
 
 
 class MediaMessageHandler(MessageHandler):
