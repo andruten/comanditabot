@@ -176,8 +176,12 @@ class MediaDownloadHandler:
         if not message or not message.text or not update.effective_user:
             return
 
+        urls = supported_urls(message.text)
+        if not urls:
+            return
+
         await message.set_reaction(ReactionEmoji.EYES)
-        for url in supported_urls(message.text):
+        for url in urls:
             platform = classify_url(url)
             if platform is Platform.YOUTUBE and not self._youtube_enabled:
                 logger.info("Ignoring YouTube media because it is disabled")

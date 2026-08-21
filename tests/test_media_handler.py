@@ -144,7 +144,7 @@ async def test_unsupported_link_is_silent():
 
 
 @pytest.mark.asyncio
-async def test_youtube_link_is_silent_when_the_platform_is_disabled():
+async def test_disabled_youtube_link_only_reacts_with_eyes():
     class RecordingDownloader:
         def __init__(self):
             self.urls = []
@@ -161,7 +161,7 @@ async def test_youtube_link_is_silent_when_the_platform_is_disabled():
 
     assert downloader.urls == []
     assert message.text_replies == []
-    assert message.reactions == []
+    assert message.reactions == [ReactionEmoji.EYES]
 
 
 @pytest.mark.asyncio
@@ -200,6 +200,23 @@ async def test_successful_download_reacts_with_eyes_then_thumbs_up():
 
     assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_UP]
     assert message.text_replies == []
+
+
+@pytest.mark.asyncio
+async def test_multiple_links_react_with_eyes_once_and_thumbs_up_per_link():
+    message = RecordingMessage(
+        "mira https://x.com/alice/status/1 y https://x.com/bob/status/2"
+    )
+    handler = _default_handler(downloader=FakeDownloader(["image.jpg"]))
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.photo_replies == ["image.jpg", "image.jpg"]
+    assert message.reactions == [
+        ReactionEmoji.EYES,
+        ReactionEmoji.THUMBS_UP,
+        ReactionEmoji.THUMBS_UP,
+    ]
 
 
 @pytest.mark.asyncio
