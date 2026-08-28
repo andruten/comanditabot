@@ -2,7 +2,7 @@ import logging.config
 import os
 
 from dotenv import load_dotenv
-from telegram.ext import Application
+from telegram.ext import Application, CallbackContext
 
 from chat_statistics import ChatStatisticsMessageHandlerFactory
 from commands import (
@@ -52,6 +52,10 @@ logging.config.dictConfig(LOGGING)
 logger = logging.getLogger(__name__)
 
 
+async def on_error(update: object, context: CallbackContext) -> None:
+    logger.error("Unhandled exception while processing update", exc_info=context.error)
+
+
 def configure_handlers(application):
     application.add_handler(MediaMessageHandler(), group=-1)
 
@@ -65,6 +69,8 @@ def configure_handlers(application):
     # Messages
     application.add_handler(ReactionHandlerFactory())
     application.add_handler(ChatStatisticsMessageHandlerFactory(), group=1)
+
+    application.add_error_handler(on_error)
 
 
 def main():
