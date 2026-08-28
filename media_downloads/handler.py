@@ -13,6 +13,7 @@ from typing import Mapping
 
 from telegram import Update
 from telegram.constants import ChatAction, ReactionEmoji
+from telegram.error import TelegramError
 from telegram.ext import CallbackContext, MessageHandler, filters
 
 from .downloader import (
@@ -207,6 +208,12 @@ class MediaDownloadHandler:
             youtube_enabled=settings.youtube_enabled,
         )
 
+    async def _set_reaction_safely(self, message, reaction: str) -> None:
+        try:
+            await message.set_reaction(reaction)
+        except TelegramError:
+            logger.warning("Could not set reaction %s", reaction)
+
     async def process(self, update: Update, context: CallbackContext) -> None:
         message = update.effective_message
         if not message or not message.text or not update.effective_user:
@@ -216,7 +223,7 @@ class MediaDownloadHandler:
         if not urls:
             return
 
-        await message.set_reaction(ReactionEmoji.EYES)
+        await self._set_reaction_safely(message, ReactionEmoji.EYES)
         for url in urls:
             platform = classify_url(url)
             if platform is Platform.YOUTUBE and not self._youtube_enabled:
@@ -247,13 +254,13 @@ class MediaDownloadHandler:
                     )
                     for media_file in media_files:
                         await self._reply_dispatcher.send(message, media_file.path)
-                    await message.set_reaction(ReactionEmoji.THUMBS_UP)
+                    await self._set_reaction_safely(message, ReactionEmoji.THUMBS_UP)
             except MediaTooLargeError:
                 logger.warning("Media too large for %s media", platform)
-                await message.set_reaction(ReactionEmoji.THUMBS_DOWN)
+                await self._set_reaction_safely(message, ReactionEmoji.THUMBS_DOWN)
             except DownloadError as error:
                 logger.warning("Failed %s media download: %s", platform, error)
-                await message.set_reaction(ReactionEmoji.THUMBS_DOWN)
+                await self._set_reaction_safely(message, ReactionEmoji.THUMBS_DOWN)
 
 
 class MediaMessageHandler(MessageHandler):

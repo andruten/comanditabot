@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 from telegram.constants import ReactionEmoji
+from telegram.error import BadRequest
 
 from media_downloads.downloader import (
     DownloadError,
@@ -203,6 +204,20 @@ async def test_successful_download_reacts_with_eyes_then_thumbs_up():
 
 
 @pytest.mark.asyncio
+async def test_reaction_failure_does_not_block_the_download():
+    class NoReactionMessage(RecordingMessage):
+        async def set_reaction(self, reaction):
+            raise BadRequest("Reaction_invalid")
+
+    message = NoReactionMessage("https://x.com/alice/status/1")
+    handler = _default_handler(downloader=FakeDownloader(["image.jpg"]))
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.photo_replies == ["image.jpg"]
+
+
+@pytest.mark.asyncio
 async def test_multiple_links_react_with_eyes_once_and_thumbs_up_per_link():
     message = RecordingMessage(
         "mira https://x.com/alice/status/1 y https://x.com/bob/status/2"
@@ -297,9 +312,12 @@ async def test_rate_limiter_replies_without_starting_a_fourth_download():
 def test_media_handler_has_priority_over_reactions():
     from comandita import configure_handlers
 
-    application = SimpleNamespace(handlers=[])
+    application = SimpleNamespace(handlers=[], error_handlers=[])
     application.add_handler = lambda handler, group=0: application.handlers.append(
         (group, handler)
+    )
+    application.add_error_handler = lambda handler: application.error_handlers.append(
+        handler
     )
 
     configure_handlers(application)
@@ -307,3 +325,4 @@ def test_media_handler_has_priority_over_reactions():
     group, handler = application.handlers[0]
     assert group == -1
     assert isinstance(handler, MediaMessageHandler)
+    assert len(application.error_handlers) == 1
