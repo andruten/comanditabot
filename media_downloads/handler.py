@@ -68,6 +68,32 @@ class SlidingWindowRateLimiter:
         return True
 
 
+class VideoDimensionExtractor:
+    def extract(self, video_path: Path) -> tuple[int, int] | None:
+        try:
+            result = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-select_streams",
+                    "v:0",
+                    "-show_entries",
+                    "stream=width,height",
+                    "-of",
+                    "csv=p=0",
+                    str(video_path),
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            width, height = result.stdout.strip().split(",")
+            return int(width), int(height)
+        except (OSError, subprocess.CalledProcessError, ValueError):
+            return None
+
+
 class VideoThumbnailGenerator:
     def generate(self, video_path: Path) -> Path | None:
         thumbnail_path = video_path.with_suffix(".thumbnail.jpg")
@@ -107,9 +133,12 @@ class VideoThumbnailGenerator:
 
 class MediaReplyDispatcher:
     def __init__(
-        self, thumbnail_generator: VideoThumbnailGenerator | None = None
+        self,
+        thumbnail_generator: VideoThumbnailGenerator | None = None,
+        dimension_extractor: VideoDimensionExtractor | None = None,
     ) -> None:
         self._thumbnail_generator = thumbnail_generator or VideoThumbnailGenerator()
+        self._dimension_extractor = dimension_extractor or VideoDimensionExtractor()
 
     async def send(self, message, path: Path) -> None:
         suffix = path.suffix.lower()
@@ -124,19 +153,26 @@ class MediaReplyDispatcher:
                 await message.reply_document(attachment)
 
     async def _send_video(self, message, attachment, path: Path) -> None:
-        thumbnail_path = await asyncio.to_thread(
-            self._thumbnail_generator.generate, path
+        thumbnail_path, dimensions = await asyncio.gather(
+            asyncio.to_thread(self._thumbnail_generator.generate, path),
+            asyncio.to_thread(self._dimension_extractor.extract, path),
         )
+        send_kwargs: dict[str, int] = {}
+        if dimensions:
+            send_kwargs["width"] = dimensions[0]
+            send_kwargs["height"] = dimensions[1]
         if (
             thumbnail_path
             and thumbnail_path.is_file()
             and thumbnail_path.stat().st_size <= MAX_TELEGRAM_THUMBNAIL_SIZE_BYTES
         ):
             with thumbnail_path.open("rb") as thumbnail:
-                await message.reply_video(attachment, thumbnail=thumbnail)
+                await message.reply_video(
+                    attachment, thumbnail=thumbnail, **send_kwargs
+                )
             logger.info("Sent video attachment with thumbnail: %s", path.name)
         else:
-            await message.reply_video(attachment)
+            await message.reply_video(attachment, **send_kwargs)
             logger.info("Sent video attachment without thumbnail: %s", path.name)
 
 
