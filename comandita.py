@@ -2,7 +2,7 @@ import logging.config
 import os
 
 from dotenv import load_dotenv
-from telegram.ext import Application, CallbackContext
+from telegram.ext import Application, CallbackContext, PicklePersistence
 
 from chat_statistics import ChatStatisticsMessageHandlerFactory
 from commands import (
@@ -12,12 +12,14 @@ from commands import (
     WeatherInKoreaCommandHandler,
 )
 from commands.chat_statistics import ChatStatisticsCommandHandler
+from feature_flags import ReactionsFlagCommandHandler
 from media_downloads.handler import MediaMessageHandler
 from reactions import ReactionHandlerFactory
 
 load_dotenv()
 
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+PERSISTENCE_PATH = os.environ.get("PERSISTENCE_PATH", "/data/bot_state.pickle")
 
 LOGGING = {
     "version": 1,
@@ -65,6 +67,7 @@ def configure_handlers(application):
     application.add_handler(StarCommandHandler())
     application.add_handler(WeatherInKoreaCommandHandler())
     application.add_handler(ChatStatisticsCommandHandler())
+    application.add_handler(ReactionsFlagCommandHandler())
 
     # Messages
     application.add_handler(ReactionHandlerFactory())
@@ -74,7 +77,13 @@ def configure_handlers(application):
 
 
 def main():
-    application = Application.builder().token(os.environ.get("BOT_TOKEN")).build()
+    persistence = PicklePersistence(filepath=PERSISTENCE_PATH, update_interval=30)
+    application = (
+        Application.builder()
+        .token(os.environ.get("BOT_TOKEN"))
+        .persistence(persistence)
+        .build()
+    )
     configure_handlers(application)
     application.run_polling()
 

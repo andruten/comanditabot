@@ -1,6 +1,7 @@
 import re
 import asyncio
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from random import choice, randint, random
 from typing import List
@@ -11,6 +12,7 @@ from telegram.constants import ChatAction
 from telegram.ext import CallbackContext, MessageHandler
 from telegram.ext import filters
 
+from feature_flags.store import FeatureFlagStore
 from media_downloads.urls import supported_urls
 
 from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
@@ -20,6 +22,7 @@ from .exceptions import DoNothingException
 class Reaction(ABC):
     reply = False
     probability = 100
+    description = ""
 
     def __init__(self, message=None, probability=None) -> None:
         super().__init__()
@@ -63,9 +66,14 @@ class ReactionRegistry:
         return registries
 
     @classmethod
-    def process_message(cls, message: str) -> Reaction:
+    def process_message(
+        cls, message: str, disabled_codes: Iterable[str] | None = None
+    ) -> Reaction:
+        disabled = set(disabled_codes) if disabled_codes else set()
         registry: Registry
         for registry in cls.get_registries():
+            if registry.code in disabled:
+                continue
             registry: Reaction = registry.reaction_class(message)
             if registry.trigger() and registry.shall_i_send_it():
                 return registry
@@ -74,6 +82,8 @@ class ReactionRegistry:
 
 @ReactionRegistry.register("digi", priority=5)
 class DigiReaction(Reaction):
+    description = 'Ladra ("Woof! Woof!") cuando alguien menciona a digi'
+
     def transform(self):
         return "Woof! Woof!"
 
@@ -83,6 +93,8 @@ class DigiReaction(Reaction):
 
 @ReactionRegistry.register("rajoy", priority=1)
 class RajoyReaction(Reaction):
+    description = "Frases de Rajoy cuando alguien menciona brey, rajoy o mariano"
+
     def transform(self):
         return choice(RAJOY_PHRASES)
 
@@ -92,6 +104,8 @@ class RajoyReaction(Reaction):
 
 @ReactionRegistry.register("zapatero", priority=2)
 class ZapateroReaction(Reaction):
+    description = "Frases de Zapatero cuando alguien menciona zapatero o zp"
+
     def transform(self):
         return choice(ZAPATERO_PHRASES)
 
@@ -102,6 +116,9 @@ class ZapateroReaction(Reaction):
 @ReactionRegistry.register("kids_alert", priority=3)
 class KidsAlertReaction(Reaction):
     reply = True
+    description = (
+        "Kids Alert! cuando alguien menciona niño, niña, hijo, hija, papá o papi"
+    )
 
     def transform(self):
         return "🚨🚨 Kids Alert! 🚨🚨"
@@ -116,6 +133,7 @@ class KidsAlertReaction(Reaction):
 @ReactionRegistry.register("broken_group", priority=4)
 class BrokenGroupReaction(Reaction):
     reply = True
+    description = '"El grupo está roto" cuando alguien cuenta que estuvo en o fue a'
 
     def transform(self):
         return "Anda que avisas... El grupo está roto."
@@ -128,6 +146,7 @@ class BrokenGroupReaction(Reaction):
 class MiMiMiReaction(Reaction):
     probability = 1
     reply = True
+    description = "Traduce el mensaje a mimimi (1% de las veces)"
     REPLACES = (
         ("[aeou]", "i"),
         ("[AEOU]", "I"),
@@ -158,6 +177,9 @@ class MiMiMiReaction(Reaction):
 class PunishmentReaction(Reaction):
     probability = 10
     reply = True
+    description = (
+        "Sentencia aleatoria cuando alguien comparte una URL (10% de las veces)"
+    )
     PUNISHMENTS = [
         "Esto tiene, por lo menos, 3 días.",
         "O sea, chao.",
@@ -180,9 +202,14 @@ class ReactionHandlerFactory(MessageHandler):
     async def process(self, update: Update, context: CallbackContext):
         if supported_urls(update.effective_message.text):
             return
+        chat_id = update.effective_chat.id
+        flags = FeatureFlagStore.from_bot_data(context)
+        if flags.all_disabled(chat_id):
+            return
         try:
             message_class = ReactionRegistry.process_message(
-                update.effective_message.text
+                update.effective_message.text,
+                disabled_codes=flags.disabled_codes(chat_id),
             )
         except DoNothingException:
             pass
