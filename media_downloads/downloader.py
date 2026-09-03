@@ -12,6 +12,7 @@ from .urls import Platform, classify_url
 
 logger = logging.getLogger(__name__)
 YOUTUBE_MAX_DURATION_SECONDS = 10 * 60
+VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".m4v", ".webm"})
 
 
 class DownloadError(Exception):
@@ -19,7 +20,7 @@ class DownloadError(Exception):
 
 
 class MediaTooLargeError(DownloadError):
-    """Raised when a downloaded attachment exceeds the configured limit."""
+    """Raised when an uncompressed attachment exceeds the configured limit."""
 
 
 @dataclass(frozen=True)
@@ -52,7 +53,10 @@ class MediaDownloader:
                 raise DownloadError(
                     "Downloaded media is outside the temporary directory"
                 )
-            if resolved_path.stat().st_size > self._max_file_size_bytes:
+            if (
+                resolved_path.stat().st_size > self._max_file_size_bytes
+                and resolved_path.suffix.lower() not in VIDEO_EXTENSIONS
+            ):
                 raise MediaTooLargeError(
                     "Downloaded media is larger than the configured limit"
                 )
