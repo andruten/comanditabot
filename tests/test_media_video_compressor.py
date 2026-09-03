@@ -69,7 +69,10 @@ def test_two_pass_encoding_targets_the_configured_size(tmp_path, monkeypatch):
     pass_one, pass_two = ffmpeg.commands[1], ffmpeg.commands[2]
     for encode_command in (pass_one, pass_two):
         assert encode_command[encode_command.index("-b:v") + 1] == "5915k"
-        assert encode_command[encode_command.index("-preset") + 1] == "medium"
+        assert encode_command[encode_command.index("-preset") + 1] == "veryfast"
+        assert (
+            encode_command[encode_command.index("-vf") + 1] == "scale=-2:'min(720,ih)'"
+        )
     assert pass_one[pass_one.index("-pass") + 1] == "1"
     assert "-an" in pass_one
     assert pass_one[-1] == os.devnull
@@ -122,6 +125,8 @@ def test_falls_back_to_constant_quality_without_a_known_duration(tmp_path, monke
 
     fallback_run = ffmpeg.commands[1]
     assert fallback_run[fallback_run.index("-crf") + 1] == "23"
+    assert fallback_run[fallback_run.index("-preset") + 1] == "veryfast"
+    assert fallback_run[fallback_run.index("-vf") + 1] == "scale=-2:'min(720,ih)'"
     assert "-pass" not in fallback_run
     assert result == tmp_path / "clip.compressed.mp4"
 

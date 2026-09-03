@@ -30,6 +30,9 @@ IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp"})
 COMPRESSION_TARGET_MARGIN_BYTES = 2 * 1024 * 1024
 COMPRESSED_AUDIO_KBPS = 96
 MINIMUM_VIDEO_BITRATE_KBPS = 150
+ENCODE_PRESET = "veryfast"
+MAX_COMPRESSED_HEIGHT = 720
+SCALE_FILTER = f"scale=-2:'min({MAX_COMPRESSED_HEIGHT},ih)'"
 logger = logging.getLogger(__name__)
 
 
@@ -215,7 +218,9 @@ class VideoCompressor:
             "-c:v",
             "libx264",
             "-preset",
-            "medium",
+            ENCODE_PRESET,
+            "-vf",
+            SCALE_FILTER,
             "-b:v",
             f"{video_kbps}k",
             "-passlogfile",
@@ -279,7 +284,9 @@ class VideoCompressor:
                     "-c:v",
                     "libx264",
                     "-preset",
-                    "medium",
+                    ENCODE_PRESET,
+                    "-vf",
+                    SCALE_FILTER,
                     "-crf",
                     str(crf),
                     "-c:a",
