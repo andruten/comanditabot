@@ -38,13 +38,23 @@ def test_download_preserves_extractor_file_order(tmp_path):
     assert [file.path.name for file in files] == ["first.jpg", "second.mp4"]
 
 
-def test_download_rejects_oversized_file(tmp_path):
+def test_download_rejects_oversized_non_video_file(tmp_path):
     downloader = MediaDownloader(
-        extractor=FakeExtractor([("clip.mp4", 46 * MIB)]), max_file_size_bytes=45 * MIB
+        extractor=FakeExtractor([("image.jpg", 46 * MIB)]), max_file_size_bytes=45 * MIB
     )
 
     with pytest.raises(MediaTooLargeError):
         downloader.download("https://x.com/alice/status/1", tmp_path)
+
+
+def test_download_allows_oversized_videos_for_compression(tmp_path):
+    downloader = MediaDownloader(
+        extractor=FakeExtractor([("clip.mp4", 46 * MIB)]), max_file_size_bytes=45 * MIB
+    )
+
+    files = downloader.download("https://x.com/alice/status/1", tmp_path)
+
+    assert [file.path.name for file in files] == ["clip.mp4"]
 
 
 def test_download_rejects_empty_output(tmp_path):

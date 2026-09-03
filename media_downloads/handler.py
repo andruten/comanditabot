@@ -20,13 +20,16 @@ from .downloader import (
     DownloadError,
     MediaDownloader,
     MediaTooLargeError,
+    VIDEO_EXTENSIONS,
     YtDlpExtractor,
 )
 from .urls import Platform, classify_url, supported_urls
 
 MAX_TELEGRAM_THUMBNAIL_SIZE_BYTES = 200 * 1024
 IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp"})
-VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".m4v", ".webm"})
+COMPRESSION_TARGET_MARGIN_BYTES = 2 * 1024 * 1024
+COMPRESSED_AUDIO_KBPS = 96
+MINIMUM_VIDEO_BITRATE_KBPS = 150
 logger = logging.getLogger(__name__)
 
 
@@ -132,6 +135,182 @@ class VideoThumbnailGenerator:
         return None
 
 
+class VideoCompressor:
+    def __init__(self, *, max_file_size_bytes: int) -> None:
+        self._max_file_size_bytes = max_file_size_bytes
+        target_size_bytes = max_file_size_bytes - COMPRESSION_TARGET_MARGIN_BYTES
+        self._target_size_bytes = (
+            target_size_bytes if target_size_bytes > 0 else max_file_size_bytes
+        )
+
+    def compress_if_needed(self, video_path: Path) -> Path | None:
+        if video_path.suffix.lower() not in VIDEO_EXTENSIONS:
+            return video_path
+        if video_path.stat().st_size <= self._target_size_bytes:
+            return video_path
+        logger.info(
+            "Compressing %s (%.1f MiB) to fit the Telegram size limit",
+            video_path.name,
+            video_path.stat().st_size / (1024 * 1024),
+        )
+        compressed_path = video_path.with_suffix(".compressed.mp4")
+        duration_seconds = self._probe_duration(video_path)
+        if duration_seconds is not None:
+            compressed = self._two_pass_encode(
+                video_path, compressed_path, duration_seconds
+            )
+        else:
+            compressed = self._constant_quality_encode(
+                video_path, compressed_path, crf=23
+            )
+            if compressed and self._exceeds_limit(compressed_path):
+                logger.info(
+                    "Retrying compression of %s with lower quality", video_path.name
+                )
+                compressed = self._constant_quality_encode(
+                    video_path, compressed_path, crf=28
+                )
+        if not compressed or self._exceeds_limit(compressed_path):
+            logger.warning(
+                "Could not compress %s below the size limit", video_path.name
+            )
+            return None
+        logger.info(
+            "Compressed %s: %.1f MiB -> %.1f MiB",
+            video_path.name,
+            video_path.stat().st_size / (1024 * 1024),
+            compressed_path.stat().st_size / (1024 * 1024),
+        )
+        return compressed_path
+
+    def _probe_duration(self, video_path: Path) -> float | None:
+        try:
+            result = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "csv=p=0",
+                    str(video_path),
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            return float(result.stdout.strip())
+        except (OSError, subprocess.CalledProcessError, ValueError):
+            return None
+
+    def _two_pass_encode(
+        self, source: Path, target: Path, duration_seconds: float
+    ) -> bool:
+        total_kbps = (self._target_size_bytes * 8 / 1000) / duration_seconds
+        video_kbps = max(
+            int(total_kbps) - COMPRESSED_AUDIO_KBPS, MINIMUM_VIDEO_BITRATE_KBPS
+        )
+        common_options = [
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-b:v",
+            f"{video_kbps}k",
+            "-passlogfile",
+            str(target.with_suffix(".passes")),
+        ]
+        return self._run_ffmpeg(
+            [
+                [
+                    "ffmpeg",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-i",
+                    str(source),
+                    *common_options,
+                    "-pass",
+                    "1",
+                    "-an",
+                    "-f",
+                    "mp4",
+                    os.devnull,
+                ],
+                [
+                    "ffmpeg",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-i",
+                    str(source),
+                    *common_options,
+                    "-pass",
+                    "2",
+                    "-maxrate",
+                    f"{int(video_kbps * 1.5)}k",
+                    "-bufsize",
+                    f"{video_kbps * 2}k",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    f"{COMPRESSED_AUDIO_KBPS}k",
+                    "-movflags",
+                    "+faststart",
+                    str(target),
+                ],
+            ]
+        )
+
+    def _constant_quality_encode(self, source: Path, target: Path, *, crf: int) -> bool:
+        return self._run_ffmpeg(
+            [
+                [
+                    "ffmpeg",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-i",
+                    str(source),
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "medium",
+                    "-crf",
+                    str(crf),
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    f"{COMPRESSED_AUDIO_KBPS}k",
+                    "-movflags",
+                    "+faststart",
+                    str(target),
+                ]
+            ]
+        )
+
+    def _run_ffmpeg(self, commands: list[list[str]]) -> bool:
+        for command in commands:
+            try:
+                subprocess.run(
+                    command,
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except (OSError, subprocess.CalledProcessError):
+                logger.warning("ffmpeg compression failed for %s", command[-1])
+                return False
+        return True
+
+    def _exceeds_limit(self, video_path: Path) -> bool:
+        return video_path.stat().st_size > self._max_file_size_bytes
+
+
 class MediaReplyDispatcher:
     def __init__(
         self,
@@ -184,11 +363,13 @@ class MediaDownloadHandler:
         downloader: MediaDownloader,
         rate_limiter: SlidingWindowRateLimiter,
         reply_dispatcher: MediaReplyDispatcher,
+        video_compressor: VideoCompressor,
         youtube_enabled: bool,
     ) -> None:
         self._downloader = downloader
         self._rate_limiter = rate_limiter
         self._reply_dispatcher = reply_dispatcher
+        self._video_compressor = video_compressor
         self._youtube_enabled = youtube_enabled
 
     @classmethod
@@ -205,6 +386,9 @@ class MediaDownloadHandler:
                 limit=settings.max_downloads_per_minute, period_seconds=60
             ),
             reply_dispatcher=MediaReplyDispatcher(),
+            video_compressor=VideoCompressor(
+                max_file_size_bytes=settings.max_file_size_bytes
+            ),
             youtube_enabled=settings.youtube_enabled,
         )
 
@@ -253,7 +437,15 @@ class MediaDownloadHandler:
                         platform,
                     )
                     for media_file in media_files:
-                        await self._reply_dispatcher.send(message, media_file.path)
+                        media_path = await asyncio.to_thread(
+                            self._video_compressor.compress_if_needed,
+                            media_file.path,
+                        )
+                        if media_path is None:
+                            raise DownloadError(
+                                "The media could not be compressed to fit the limit"
+                            )
+                        await self._reply_dispatcher.send(message, media_path)
                     await self._set_reaction_safely(message, ReactionEmoji.THUMBS_UP)
             except MediaTooLargeError:
                 logger.warning("Media too large for %s media", platform)

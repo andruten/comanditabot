@@ -68,6 +68,23 @@ class FailingDownloader:
         raise DownloadError("not available")
 
 
+class FakeVideoCompressor:
+    def __init__(self, compressed_name=None):
+        self.compressed_name = compressed_name
+
+    def compress_if_needed(self, video_path):
+        if self.compressed_name is None:
+            return video_path
+        compressed_path = video_path.with_name(self.compressed_name)
+        compressed_path.write_bytes(b"compressed")
+        return compressed_path
+
+
+class FailingVideoCompressor:
+    def compress_if_needed(self, video_path):
+        return None
+
+
 class FakeThumbnailGenerator:
     def generate(self, video_path):
         thumbnail = video_path.with_suffix(".thumbnail.jpg")
@@ -100,6 +117,7 @@ def _default_handler(**overrides):
         downloader=FakeDownloader(["image.jpg"]),
         rate_limiter=SlidingWindowRateLimiter(limit=10, period_seconds=60),
         reply_dispatcher=MediaReplyDispatcher(),
+        video_compressor=FakeVideoCompressor(),
         youtube_enabled=True,
     )
     defaults.update(overrides)
@@ -190,6 +208,34 @@ async def test_oversized_media_reacts_with_thumbs_down():
 
     assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_DOWN]
     assert message.text_replies == []
+
+
+@pytest.mark.asyncio
+async def test_oversized_video_is_compressed_before_sending():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = _default_handler(
+        downloader=FakeDownloader(["clip.mp4"]),
+        video_compressor=FakeVideoCompressor("clip.compressed.mp4"),
+    )
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.video_replies == ["clip.compressed.mp4"]
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_UP]
+
+
+@pytest.mark.asyncio
+async def test_failed_compression_reacts_with_thumbs_down():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = _default_handler(
+        downloader=FakeDownloader(["clip.mp4"]),
+        video_compressor=FailingVideoCompressor(),
+    )
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.video_replies == []
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_DOWN]
 
 
 @pytest.mark.asyncio
