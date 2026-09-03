@@ -1,4 +1,3 @@
-import os
 import subprocess
 from pathlib import Path
 
@@ -21,8 +20,6 @@ class FakeFfmpeg:
             if self.probe_error:
                 raise subprocess.CalledProcessError(1, command)
             return subprocess.CompletedProcess(command, 0, stdout=self.duration)
-        if command[-1] == os.devnull:
-            return subprocess.CompletedProcess(command, 0)
         size = self.output_sizes.pop(0) if self.output_sizes else None
         if size is None:
             raise subprocess.CalledProcessError(1, command)
@@ -58,7 +55,7 @@ def test_non_video_files_are_returned_unchanged(tmp_path, monkeypatch):
     assert ffmpeg.commands == []
 
 
-def test_two_pass_encoding_targets_the_configured_size(tmp_path, monkeypatch):
+def test_rate_capped_encoding_targets_the_configured_size(tmp_path, monkeypatch):
     ffmpeg = FakeFfmpeg(duration="60.0", output_sizes=[40 * MIB])
     monkeypatch.setattr("media_downloads.handler.subprocess.run", ffmpeg)
     video_path = make_video(tmp_path)
@@ -66,21 +63,18 @@ def test_two_pass_encoding_targets_the_configured_size(tmp_path, monkeypatch):
     result = VideoCompressor(max_file_size_bytes=LIMIT).compress_if_needed(video_path)
 
     assert ffmpeg.commands[0][0] == "ffprobe"
-    pass_one, pass_two = ffmpeg.commands[1], ffmpeg.commands[2]
-    for encode_command in (pass_one, pass_two):
-        assert encode_command[encode_command.index("-b:v") + 1] == "5915k"
-        assert encode_command[encode_command.index("-preset") + 1] == "veryfast"
-        assert (
-            encode_command[encode_command.index("-vf") + 1] == "scale=-2:'min(720,ih)'"
-        )
-    assert pass_one[pass_one.index("-pass") + 1] == "1"
-    assert "-an" in pass_one
-    assert pass_one[-1] == os.devnull
-    assert pass_two[pass_two.index("-pass") + 1] == "2"
-    assert pass_two[pass_two.index("-maxrate") + 1] == "8872k"
-    assert pass_two[pass_two.index("-bufsize") + 1] == "11830k"
-    assert pass_two[-1] == str(tmp_path / "clip.compressed.mp4")
-    assert "-movflags" in pass_two
+    assert len(ffmpeg.commands) == 2
+    encode_command = ffmpeg.commands[1]
+    assert encode_command[encode_command.index("-preset") + 1] == "superfast"
+    assert encode_command[encode_command.index("-vf") + 1] == "scale=-2:'min(720,ih)'"
+    assert encode_command[encode_command.index("-crf") + 1] == "23"
+    assert encode_command[encode_command.index("-maxrate") + 1] == "5915k"
+    assert encode_command[encode_command.index("-bufsize") + 1] == "11830k"
+    assert "-pass" not in encode_command
+    assert "-b:v" not in encode_command
+    assert encode_command[encode_command.index("-b:a") + 1] == "96k"
+    assert encode_command[-1] == str(tmp_path / "clip.compressed.mp4")
+    assert "-movflags" in encode_command
     assert result == tmp_path / "clip.compressed.mp4"
 
 
@@ -125,7 +119,7 @@ def test_falls_back_to_constant_quality_without_a_known_duration(tmp_path, monke
 
     fallback_run = ffmpeg.commands[1]
     assert fallback_run[fallback_run.index("-crf") + 1] == "23"
-    assert fallback_run[fallback_run.index("-preset") + 1] == "veryfast"
+    assert fallback_run[fallback_run.index("-preset") + 1] == "superfast"
     assert fallback_run[fallback_run.index("-vf") + 1] == "scale=-2:'min(720,ih)'"
     assert "-pass" not in fallback_run
     assert result == tmp_path / "clip.compressed.mp4"

@@ -30,7 +30,7 @@ IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp"})
 COMPRESSION_TARGET_MARGIN_BYTES = 2 * 1024 * 1024
 COMPRESSED_AUDIO_KBPS = 96
 MINIMUM_VIDEO_BITRATE_KBPS = 150
-ENCODE_PRESET = "veryfast"
+ENCODE_PRESET = "superfast"
 MAX_COMPRESSED_HEIGHT = 720
 SCALE_FILTER = f"scale=-2:'min({MAX_COMPRESSED_HEIGHT},ih)'"
 logger = logging.getLogger(__name__)
@@ -159,7 +159,7 @@ class VideoCompressor:
         compressed_path = video_path.with_suffix(".compressed.mp4")
         duration_seconds = self._probe_duration(video_path)
         if duration_seconds is not None:
-            compressed = self._two_pass_encode(
+            compressed = self._rate_capped_encode(
                 video_path, compressed_path, duration_seconds
             )
         else:
@@ -207,25 +207,13 @@ class VideoCompressor:
         except (OSError, subprocess.CalledProcessError, ValueError):
             return None
 
-    def _two_pass_encode(
+    def _rate_capped_encode(
         self, source: Path, target: Path, duration_seconds: float
     ) -> bool:
         total_kbps = (self._target_size_bytes * 8 / 1000) / duration_seconds
         video_kbps = max(
             int(total_kbps) - COMPRESSED_AUDIO_KBPS, MINIMUM_VIDEO_BITRATE_KBPS
         )
-        common_options = [
-            "-c:v",
-            "libx264",
-            "-preset",
-            ENCODE_PRESET,
-            "-vf",
-            SCALE_FILTER,
-            "-b:v",
-            f"{video_kbps}k",
-            "-passlogfile",
-            str(target.with_suffix(".passes")),
-        ]
         return self._run_ffmpeg(
             [
                 [
@@ -236,27 +224,16 @@ class VideoCompressor:
                     "-y",
                     "-i",
                     str(source),
-                    *common_options,
-                    "-pass",
-                    "1",
-                    "-an",
-                    "-f",
-                    "mp4",
-                    os.devnull,
-                ],
-                [
-                    "ffmpeg",
-                    "-hide_banner",
-                    "-loglevel",
-                    "error",
-                    "-y",
-                    "-i",
-                    str(source),
-                    *common_options,
-                    "-pass",
-                    "2",
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    ENCODE_PRESET,
+                    "-vf",
+                    SCALE_FILTER,
+                    "-crf",
+                    "23",
                     "-maxrate",
-                    f"{int(video_kbps * 1.5)}k",
+                    f"{video_kbps}k",
                     "-bufsize",
                     f"{video_kbps * 2}k",
                     "-c:a",
@@ -266,7 +243,7 @@ class VideoCompressor:
                     "-movflags",
                     "+faststart",
                     str(target),
-                ],
+                ]
             ]
         )
 

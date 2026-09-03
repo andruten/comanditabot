@@ -77,8 +77,15 @@ class YtDlpExtractor:
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
             "noplaylist": platform is Platform.YOUTUBE,
             "format": (
-                "best[ext=mp4][vcodec!*=vp9][acodec!=none]"
-                "/best[ext=mp4][acodec!=none]/best"
+                "best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize<43M]"
+                "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize_approx<43M]"
+                "/best[ext=mp4][acodec!=?none][filesize<43M]"
+                "/best[ext=mp4][acodec!=?none][filesize_approx<43M]"
+                "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][height<=?720]"
+                "/best[ext=mp4][acodec!=?none][height<=?720]"
+                "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none]"
+                "/best[ext=mp4][acodec!=?none]"
+                "/best"
             ),
             "match_filter": _youtube_duration_filter,
             "quiet": True,
