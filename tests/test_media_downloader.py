@@ -160,7 +160,9 @@ def test_extractor_does_not_expand_youtube_playlists(monkeypatch, tmp_path):
     assert options["noplaylist"] is True
 
 
-def test_extractor_prefers_a_telegram_playable_mp4_format(monkeypatch, tmp_path):
+def test_extractor_prefers_formats_that_already_fit_the_telegram_limit(
+    monkeypatch, tmp_path
+):
     options = {}
 
     class FakeYoutubeDL:
@@ -183,7 +185,15 @@ def test_extractor_prefers_a_telegram_playable_mp4_format(monkeypatch, tmp_path)
     )
 
     assert options["format"] == (
-        "best[ext=mp4][vcodec!*=vp9][acodec!=none]/best[ext=mp4][acodec!=none]/best"
+        "best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize<43M]"
+        "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize_approx<43M]"
+        "/best[ext=mp4][acodec!=?none][filesize<43M]"
+        "/best[ext=mp4][acodec!=?none][filesize_approx<43M]"
+        "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][height<=?720]"
+        "/best[ext=mp4][acodec!=?none][height<=?720]"
+        "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none]"
+        "/best[ext=mp4][acodec!=?none]"
+        "/best"
     )
 
 

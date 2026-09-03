@@ -82,6 +82,7 @@ def main():
         Application.builder()
         .token(os.environ.get("BOT_TOKEN"))
         .persistence(persistence)
+        .concurrent_updates(True)
         .build()
     )
     configure_handlers(application)
