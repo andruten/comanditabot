@@ -1,5 +1,5 @@
 python-dotenv==1.2.2
-python-telegram-bot==22.5
+python-telegram-bot==22.8
 validators==0.35.0
 yt-dlp==2026.7.4
 yt-dlp-ejs==0.8.0
