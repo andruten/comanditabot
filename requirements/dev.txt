@@ -2,7 +2,7 @@
 
 freezegun==1.5.5
 ipdb==0.13.13
-pytest==9.1.0
+pytest==9.1.1
 pytest-cov==7.1.0
 pytest-asyncio==1.4.0
 ruff==0.15.22
