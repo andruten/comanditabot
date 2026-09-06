@@ -65,8 +65,14 @@ class MediaDownloader:
 
 
 class YtDlpExtractor:
-    def __init__(self, *, youtube_pot_provider_url: str | None) -> None:
+    def __init__(
+        self,
+        *,
+        youtube_pot_provider_url: str | None,
+        max_file_size_bytes: int,
+    ) -> None:
         self._youtube_pot_provider_url = youtube_pot_provider_url
+        self._size_limit = f"{max_file_size_bytes // (1024 * 1024)}M"
 
     def extract(self, url: str, output_directory: Path) -> list[Path]:
         logger.info(
@@ -76,17 +82,7 @@ class YtDlpExtractor:
         options = {
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
             "noplaylist": platform is Platform.YOUTUBE,
-            "format": (
-                "best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize<43M]"
-                "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize_approx<43M]"
-                "/best[ext=mp4][acodec!=?none][filesize<43M]"
-                "/best[ext=mp4][acodec!=?none][filesize_approx<43M]"
-                "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][height<=?720]"
-                "/best[ext=mp4][acodec!=?none][height<=?720]"
-                "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none]"
-                "/best[ext=mp4][acodec!=?none]"
-                "/best"
-            ),
+            "format": _ytdlp_format(self._size_limit),
             "match_filter": _youtube_duration_filter,
             "quiet": True,
             "no_warnings": True,
@@ -112,6 +108,25 @@ class YtDlpExtractor:
             ", ".join(path.name for path in downloaded_paths),
         )
         return downloaded_paths
+
+
+def _ytdlp_format(size_limit: str) -> str:
+    """Prefer mp4 formats already under the configured size limit."""
+    return (
+        "best[ext=mp4][vcodec!*=?vp9][acodec!=?none]"
+        f"[filesize<{size_limit}]"
+        "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none]"
+        f"[filesize_approx<{size_limit}]"
+        "/best[ext=mp4][acodec!=?none]"
+        f"[filesize<{size_limit}]"
+        "/best[ext=mp4][acodec!=?none]"
+        f"[filesize_approx<{size_limit}]"
+        "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][height<=?720]"
+        "/best[ext=mp4][acodec!=?none][height<=?720]"
+        "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none]"
+        "/best[ext=mp4][acodec!=?none]"
+        "/best"
+    )
 
 
 def _apply_platform_options(

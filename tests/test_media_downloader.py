@@ -100,7 +100,7 @@ def test_extractor_keeps_all_items_when_a_url_has_multiple_media(monkeypatch, tm
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(youtube_pot_provider_url=None).extract(
+    YtDlpExtractor(youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB).extract(
         "https://instagram.com/p/example", tmp_path
     )
 
@@ -127,7 +127,7 @@ def test_extractor_ignores_missing_formats_inside_instagram_carousels(
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(youtube_pot_provider_url=None).extract(
+    YtDlpExtractor(youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB).extract(
         "https://instagram.com/p/example", tmp_path
     )
 
@@ -153,7 +153,7 @@ def test_extractor_does_not_expand_youtube_playlists(monkeypatch, tmp_path):
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(youtube_pot_provider_url=None).extract(
+    YtDlpExtractor(youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB).extract(
         "https://youtube.com/watch?v=example&list=playlist", tmp_path
     )
 
@@ -180,15 +180,15 @@ def test_extractor_prefers_formats_that_already_fit_the_telegram_limit(
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(youtube_pot_provider_url=None).extract(
+    YtDlpExtractor(youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB).extract(
         "https://instagram.com/p/example", tmp_path
     )
 
     assert options["format"] == (
-        "best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize<43M]"
-        "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize_approx<43M]"
-        "/best[ext=mp4][acodec!=?none][filesize<43M]"
-        "/best[ext=mp4][acodec!=?none][filesize_approx<43M]"
+        "best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize<45M]"
+        "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][filesize_approx<45M]"
+        "/best[ext=mp4][acodec!=?none][filesize<45M]"
+        "/best[ext=mp4][acodec!=?none][filesize_approx<45M]"
         "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none][height<=?720]"
         "/best[ext=mp4][acodec!=?none][height<=?720]"
         "/best[ext=mp4][vcodec!*=?vp9][acodec!=?none]"
@@ -217,7 +217,7 @@ def test_extractor_rejects_youtube_videos_longer_than_ten_minutes(
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(youtube_pot_provider_url=None).extract(
+    YtDlpExtractor(youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB).extract(
         "https://youtube.com/watch?v=example", tmp_path
     )
 
@@ -270,6 +270,7 @@ def test_extractor_uses_the_internal_provider_for_youtube_only(monkeypatch, tmp_
 
     extractor = YtDlpExtractor(
         youtube_pot_provider_url="http://youtube-pot-provider:4416",
+        max_file_size_bytes=45 * MIB,
     )
     extractor.extract("https://youtube.com/shorts/example", tmp_path)
 
@@ -302,6 +303,7 @@ def test_extractor_does_not_configure_the_provider_for_other_platforms(
 
     extractor = YtDlpExtractor(
         youtube_pot_provider_url="http://youtube-pot-provider:4416",
+        max_file_size_bytes=45 * MIB,
     )
     extractor.extract("https://instagram.com/p/example", tmp_path)
 
@@ -337,6 +339,8 @@ def test_extractor_uses_chrome_impersonation_only_for_x(
 
     monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
 
-    YtDlpExtractor(youtube_pot_provider_url=None).extract(url, tmp_path)
+    YtDlpExtractor(youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB).extract(
+        url, tmp_path
+    )
 
     assert options.get("impersonate") == impersonate
