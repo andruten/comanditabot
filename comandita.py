@@ -1,8 +1,8 @@
-import logging
+import logging.config
 import os
 
 from dotenv import load_dotenv
-from telegram.ext import Application
+from telegram.ext import Application, CallbackContext, PicklePersistence
 
 from chat_statistics import ChatStatisticsMessageHandlerFactory
 from commands import (
@@ -12,35 +12,80 @@ from commands import (
     WeatherInKoreaCommandHandler,
 )
 from commands.chat_statistics import ChatStatisticsCommandHandler
+from feature_flags import ReactionsFlagCommandHandler
+from media_downloads.handler import MediaMessageHandler
 from reactions import ReactionHandlerFactory
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
-app_log_level = getattr(logging, os.environ.get("LOG_LEVEL", "INFO"), logging.INFO)
-logging.getLogger("chat_statistics").setLevel(app_log_level)
-logging.getLogger("clients").setLevel(app_log_level)
-logging.getLogger("commands").setLevel(app_log_level)
-logging.getLogger("reactions").setLevel(app_log_level)
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+PERSISTENCE_PATH = os.environ.get("PERSISTENCE_PATH", "/data/bot_state.pickle")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "chat_statistics": {"level": LOG_LEVEL},
+        "clients": {"level": LOG_LEVEL},
+        "commands": {"level": LOG_LEVEL},
+        "media_downloads": {"level": LOG_LEVEL},
+        "reactions": {"level": LOG_LEVEL},
+        "telegram": {"level": "WARNING"},
+        "httpx": {"level": "WARNING"},
+    },
+}
+
+logging.config.dictConfig(LOGGING)
 logger = logging.getLogger(__name__)
 
 
-def main():
-    application = Application.builder().token(os.environ.get("BOT_TOKEN")).build()
+async def on_error(update: object, context: CallbackContext) -> None:
+    logger.error("Unhandled exception while processing update", exc_info=context.error)
+
+
+def configure_handlers(application):
+    application.add_handler(MediaMessageHandler(), group=-1)
+
     # Commands
     application.add_handler(MiMiMiCommandHandler())
     application.add_handler(PunisherCommandHandler())
     application.add_handler(StarCommandHandler())
     application.add_handler(WeatherInKoreaCommandHandler())
     application.add_handler(ChatStatisticsCommandHandler())
+    application.add_handler(ReactionsFlagCommandHandler())
 
     # Messages
     application.add_handler(ReactionHandlerFactory())
     application.add_handler(ChatStatisticsMessageHandlerFactory(), group=1)
 
+    application.add_error_handler(on_error)
+
+
+def main():
+    persistence = PicklePersistence(filepath=PERSISTENCE_PATH, update_interval=30)
+    application = (
+        Application.builder()
+        .token(os.environ.get("BOT_TOKEN"))
+        .persistence(persistence)
+        .concurrent_updates(True)
+        .build()
+    )
+    configure_handlers(application)
     application.run_polling()
 
     logger.info("Bot started...")

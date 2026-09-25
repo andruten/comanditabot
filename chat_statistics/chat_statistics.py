@@ -1,11 +1,13 @@
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+import datetime
 from random import randint
 
 from telegram import Bot, Message, Update
 from telegram.ext import CallbackContext, MessageHandler
 from telegram.ext import filters
+
+from feature_flags.store import LO_QUE_ESCRIBIS, FeatureFlagStore
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +48,7 @@ class ChatStatistics(metaclass=SingletonMeta):
     def get_daily_statistics(self, chat_id: int) -> DailyStatistics:
         if chat_id not in self._daily_counter:
             self._daily_counter[chat_id] = {}
-        today = datetime.utcnow().today().strftime("%Y-%m-%d")
+        today = datetime.datetime.now(datetime.UTC).today().strftime("%Y-%m-%d")
         if today not in self._daily_counter[chat_id]:
             self._daily_counter[chat_id][today] = DailyStatistics()
         return self._daily_counter[chat_id][today]
@@ -73,9 +75,13 @@ class ChatStatisticsMessageHandlerFactory(MessageHandler):
         daily_statistics = chat_statistics.update_daily(
             update.effective_message, chat_id
         )
-        if daily_statistics.threshold_reached:
-            bot: Bot = context.bot
-            await bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=f"¡La virgen, lo que escribís! {daily_statistics.messages_count} mensajes 😵‍💫",
-            )
+        if not daily_statistics.threshold_reached:
+            return
+        flags = FeatureFlagStore.from_bot_data(context)
+        if flags.is_blocked(chat_id, LO_QUE_ESCRIBIS):
+            return
+        bot: Bot = context.bot
+        await bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"¡La virgen, lo que escribís! {daily_statistics.messages_count} mensajes 😵‍💫",
+        )

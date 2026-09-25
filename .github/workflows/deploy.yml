@@ -1,37 +1,119 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
-name: Deploy
+name: Build image
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+    tags:
+      - "**"
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: registry.juanmadiaz.com
 
 jobs:
-  pro-deployment:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image_name: apps/comanditabot
+            context: .
+            build_args: requirements=pro
+            cache_scope: comanditabot
+          - image_name: apps/comanditabot-youtube-pot-provider
+            context: youtube-pot-provider
+            build_args: ""
+            cache_scope: comanditabot-youtube-pot-provider
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to private registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Prepare image tags
+        id: image-tags
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          image="${REGISTRY}/${{ matrix.image_name }}"
+          tags=("${image}:${GITHUB_SHA}")
+
+          if [[ "${GITHUB_REF_TYPE}" == "branch" && "${GITHUB_REF_NAME}" == "main" ]]; then
+            tags+=("${image}:main")
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME//\//-}"
+            tags+=("${image}:${tag}")
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "release" && -n "${RELEASE_TAG:-}" ]]; then
+            tag="${RELEASE_TAG//\//-}"
+            tags+=("${image}:${tag}")
+          fi
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${tags[@]}" | awk '!seen[$0]++'
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: ${{ steps.image-tags.outputs.tags }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
+
+  notify-infra:
+    needs: build
+    if: >
+      (github.event_name == 'push' && github.ref_type == 'tag') ||
+      github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup SSH
-        uses: shimataro/ssh-key-action@v2
+      - id: infra-token
+        uses: actions/create-github-app-token@v2
         with:
-          key: ${{ secrets.SSH_PRIVATE_KEY_GITHUB_ACTIONS }}
-          name: github-actions
-          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          app-id: ${{ secrets.K8S_INFRA_APP_ID }}
+          private-key: ${{ secrets.K8S_INFRA_APP_PRIVATE_KEY }}
+          owner: torgus
+          repositories: k8s-infra
 
-      - name: Deploy code
-        run: rsync -avz --exclude '.git/' -e "ssh -i ~/.ssh/github-actions" . ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
-
-      - name: Build image comanditabot:latest
-        uses: appleboy/ssh-action@master
+      - uses: actions/github-script@v7
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY_GITHUB_ACTIONS }}
-          port: ${{ secrets.SSH_PORT }}
+          github-token: ${{ steps.infra-token.outputs.token }}
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}
-            docker compose build
-            docker compose down
-            docker compose up -d
+            const tag = context.payload.release?.tag_name ??
+              context.ref.replace("refs/tags/", "");
+
+            await github.rest.repos.createDispatchEvent({
+              owner: "torgus",
+              repo: "k8s-infra",
+              event_type: "image-published",
+              client_payload: {
+                app: "comanditabot",
+                tag,
+              },
+            });
