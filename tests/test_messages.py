@@ -1,6 +1,8 @@
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
+from telegram import Chat, Message, Update
 
 from reactions.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from reactions.reactions import (
@@ -97,3 +99,69 @@ async def test_reaction_handler_skips_supported_media_links(monkeypatch):
     )
 
     assert not called
+
+
+def make_text_message(text):
+    return Message(
+        message_id=1,
+        date=datetime.now(timezone.utc),
+        chat=Chat(id=1, type="private"),
+        text=text,
+    )
+
+
+def test_reaction_handler_ignores_updates_that_are_not_plain_messages():
+    """Edited messages and channel posts must not trigger reactions.
+
+    They reach MessageHandler via filters.TEXT (which checks effective_message)
+    but update.message is None on those update types.
+    """
+    handler = ReactionHandlerFactory()
+    message = make_text_message("Vas a votar a Rajoy, y lo sabes")
+
+    assert not handler.filters.check_update(Update(update_id=1, edited_message=message))
+    assert not handler.filters.check_update(Update(update_id=2, channel_post=message))
+    assert not handler.filters.check_update(
+        Update(update_id=3, edited_channel_post=message)
+    )
+    assert handler.filters.check_update(Update(update_id=4, message=message))
+
+
+@pytest.mark.asyncio
+async def test_reaction_handler_replies_via_effective_message(monkeypatch):
+    """reply=True reactions must not rely on update.message being present."""
+    handler = ReactionHandlerFactory()
+
+    class DummyReaction:
+        reply = True
+
+        def transform(self):
+            return "🚨🚨 Kids Alert! 🚨🚨"
+
+    class DummyBot:
+        async def send_chat_action(self, chat_id, action):
+            pass
+
+    monkeypatch.setattr(
+        ReactionRegistry, "process_message", lambda *args, **kwargs: DummyReaction()
+    )
+    monkeypatch.setattr("reactions.reactions.randint", lambda _a, _b: 0)
+
+    recorder = SimpleNamespace(texts=[])
+
+    async def reply_text(text):
+        recorder.texts.append(text)
+
+    # No `message` attribute on purpose: mimics edited/channel updates.
+    update = SimpleNamespace(
+        effective_message=SimpleNamespace(text="mi hija", reply_text=reply_text),
+        effective_chat=SimpleNamespace(id=1),
+    )
+    context = SimpleNamespace(
+        application=SimpleNamespace(bot_data={}),
+        bot=DummyBot(),
+    )
+
+    await handler.process(update, context)
+
+    assert recorder.texts == ["🚨🚨 Kids Alert! 🚨🚨"]
