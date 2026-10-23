@@ -29,6 +29,12 @@ def test_youtube_pot_provider_image_is_pinned():
     assert "brainicism/bgutil-ytdlp-pot-provider:1.3.1-node" in dockerfile
 
 
+def test_build_context_excludes_secrets():
+    dockerignore = Path(".dockerignore").read_text()
+
+    assert ".env" in dockerignore
+
+
 def test_build_workflow_publishes_both_comandita_images():
     workflow = Path(".github/workflows/deploy.yml").read_text()
 

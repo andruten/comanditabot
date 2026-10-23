@@ -363,6 +363,7 @@ class MediaDownloadHandler:
             downloader=MediaDownloader(
                 extractor=YtDlpExtractor(
                     youtube_pot_provider_url=settings.youtube_pot_provider_url,
+                    max_file_size_bytes=settings.max_file_size_bytes,
                 ),
                 max_file_size_bytes=settings.max_file_size_bytes,
             ),
