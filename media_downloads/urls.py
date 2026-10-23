@@ -1,11 +1,10 @@
 """Recognise the public media URL shapes supported by the bot."""
 
+import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
-import re
-from typing import Callable
 from urllib.parse import parse_qs, urlsplit
-
 
 URL_PATTERN = re.compile(r"https?://[^\s<>()]+")
 

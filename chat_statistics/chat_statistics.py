@@ -1,11 +1,11 @@
+import datetime
 import logging
 from dataclasses import dataclass, field
-import datetime
 from random import randint
+from typing import ClassVar
 
 from telegram import Bot, Message, Update
-from telegram.ext import CallbackContext, MessageHandler
-from telegram.ext import filters
+from telegram.ext import CallbackContext, MessageHandler, filters
 
 from feature_flags.store import LO_QUE_ESCRIBIS, FeatureFlagStore
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class SingletonMeta(type):
-    _instances = {}
+    _instances: ClassVar[dict] = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
@@ -40,7 +40,7 @@ class DailyStatistics:
 
 
 class ChatStatistics(metaclass=SingletonMeta):
-    _daily_counter = {}
+    _daily_counter: ClassVar[dict] = {}
 
     def __eq__(self, o: object) -> bool:
         return id(self) == id(o)

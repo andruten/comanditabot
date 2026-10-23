@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import CommandHandler, CallbackContext
+from telegram.ext import CallbackContext, CommandHandler
 
 
 class BaseCommandHandler(CommandHandler):

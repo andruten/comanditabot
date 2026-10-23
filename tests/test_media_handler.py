@@ -113,13 +113,13 @@ def update_for(message, user_id=42):
 
 
 def _default_handler(**overrides):
-    defaults = dict(
-        downloader=FakeDownloader(["image.jpg"]),
-        rate_limiter=SlidingWindowRateLimiter(limit=10, period_seconds=60),
-        reply_dispatcher=MediaReplyDispatcher(),
-        video_compressor=FakeVideoCompressor(),
-        youtube_enabled=True,
-    )
+    defaults = {
+        "downloader": FakeDownloader(["image.jpg"]),
+        "rate_limiter": SlidingWindowRateLimiter(limit=10, period_seconds=60),
+        "reply_dispatcher": MediaReplyDispatcher(),
+        "video_compressor": FakeVideoCompressor(),
+        "youtube_enabled": True,
+    }
     defaults.update(overrides)
     return MediaDownloadHandler(**defaults)
 

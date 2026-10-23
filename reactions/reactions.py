@@ -1,16 +1,15 @@
-import re
 import asyncio
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
 from random import choice, randint, random
-from typing import List
+from typing import ClassVar
 
 import validators
 from telegram import Bot, Update
 from telegram.constants import ChatAction
-from telegram.ext import CallbackContext, MessageHandler
-from telegram.ext import filters
+from telegram.ext import CallbackContext, MessageHandler, filters
 
 from feature_flags.store import FeatureFlagStore
 from media_downloads.urls import supported_urls
@@ -61,8 +60,8 @@ class ReactionRegistry:
         return wrapper
 
     @classmethod
-    def get_registries(cls) -> List[Registry]:
-        registries = getattr(cls, "__registries", list())
+    def get_registries(cls) -> list[Registry]:
+        registries = getattr(cls, "__registries", [])
         return registries
 
     @classmethod
@@ -180,7 +179,7 @@ class PunishmentReaction(Reaction):
     description = (
         "Sentencia aleatoria cuando alguien comparte una URL (10% de las veces)"
     )
-    PUNISHMENTS = [
+    PUNISHMENTS: ClassVar[list] = [
         "Esto tiene, por lo menos, 3 días.",
         "O sea, chao.",
         "Gilipollas tú, gilipollas tú y gilipollas tú.",
