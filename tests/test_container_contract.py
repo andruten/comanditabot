@@ -17,6 +17,12 @@ def test_runtime_image_includes_the_youtube_challenge_solver():
     assert "yt-dlp-ejs==0.8.0" in requirements
 
 
+def test_runtime_image_runs_as_non_root():
+    dockerfile = Path("Dockerfile").read_text()
+
+    assert "USER bot" in dockerfile
+
+
 def test_youtube_pot_provider_image_is_pinned():
     dockerfile = Path("youtube-pot-provider/Dockerfile").read_text()
 
