@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -11,8 +11,8 @@ from reactions.reactions import (
     MiMiMiReaction,
     PunishmentReaction,
     RajoyReaction,
-    ReactionRegistry,
     ReactionHandlerFactory,
+    ReactionRegistry,
     ZapateroReaction,
 )
 
@@ -104,7 +104,7 @@ async def test_reaction_handler_skips_supported_media_links(monkeypatch):
 def make_text_message(text):
     return Message(
         message_id=1,
-        date=datetime.now(timezone.utc),
+        date=datetime.now(UTC),
         chat=Chat(id=1, type="private"),
         text=text,
     )
