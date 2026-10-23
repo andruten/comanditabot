@@ -197,7 +197,12 @@ class PunishmentReaction(Reaction):
 
 class ReactionHandlerFactory(MessageHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(filters.TEXT & ~filters.COMMAND, self.process, *args, **kwargs)
+        super().__init__(
+            filters.TEXT & ~filters.COMMAND & filters.UpdateType.MESSAGE,
+            self.process,
+            *args,
+            **kwargs,
+        )
 
     async def process(self, update: Update, context: CallbackContext):
         if supported_urls(update.effective_message.text):
@@ -225,7 +230,7 @@ class ReactionHandlerFactory(MessageHandler):
                     chat_id=update.effective_chat.id,
                     action=ChatAction.TYPING,
                 )
-                await update.message.reply_text(text)
+                await update.effective_message.reply_text(text)
             else:
                 bot: Bot = context.bot
                 await bot.send_message(
