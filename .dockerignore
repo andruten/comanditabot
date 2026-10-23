@@ -1,3 +1,14 @@
-/venv/
-/.pytest_cache/
+# Secrets must never be baked into the image
+.env
+
+# Version control and editor files
+.git/
+.idea/
+
+# Local caches and tooling artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
 .coverage
+/venv/
