@@ -1,7 +1,7 @@
 """Safe, temporary public-media downloads backed by yt-dlp."""
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 

@@ -16,7 +16,8 @@ def test_daily_statistics():
     daily_statistics = chat_statistics.get_daily_statistics(chat_id)
     assert isinstance(daily_statistics, DailyStatistics)
     assert daily_statistics.messages_count == 0
-    assert daily_statistics.alert_when >= 200 <= 300
+    assert daily_statistics.alert_when >= 200
+    assert daily_statistics.alert_when <= 300
 
 
 @freeze_time("2023-01-27 03:00:00")

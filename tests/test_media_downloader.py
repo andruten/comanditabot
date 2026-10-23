@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
 from media_downloads.downloader import (
     DownloadError,
@@ -8,7 +9,6 @@ from media_downloads.downloader import (
     MediaTooLargeError,
     YtDlpExtractor,
 )
-from yt_dlp.networking.impersonate import ImpersonateTarget
 
 MIB = 1024 * 1024
 

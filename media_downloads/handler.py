@@ -5,11 +5,11 @@ import logging
 import os
 import subprocess
 from collections import defaultdict, deque
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
-from typing import Mapping
 
 from telegram import Update
 from telegram.constants import ChatAction, ReactionEmoji
@@ -17,10 +17,10 @@ from telegram.error import TelegramError
 from telegram.ext import CallbackContext, MessageHandler, filters
 
 from .downloader import (
+    VIDEO_EXTENSIONS,
     DownloadError,
     MediaDownloader,
     MediaTooLargeError,
-    VIDEO_EXTENSIONS,
     YtDlpExtractor,
 )
 from .urls import Platform, classify_url, supported_urls
