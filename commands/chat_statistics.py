@@ -16,7 +16,7 @@ class ChatStatisticsCommandHandler(BaseCommandHandler):
         if daily_statistics.photos_count:
             text += f"Fotos: {daily_statistics.photos_count}\n"
         if daily_statistics.videos_count:
-            text += f"Videos: {daily_statistics.photos_count}\n"
+            text += f"Videos: {daily_statistics.videos_count}\n"
         if daily_statistics.audios_count:
             text += f"Audios: {daily_statistics.audios_count}\n"
         bot: Bot = context.bot
