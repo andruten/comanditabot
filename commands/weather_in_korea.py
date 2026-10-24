@@ -1,7 +1,9 @@
 import asyncio
+import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import httpx
 from telegram import Bot, Update
 from telegram.constants import ChatAction
 from telegram.ext import CallbackContext
@@ -9,6 +11,8 @@ from telegram.ext import CallbackContext
 from clients.exceptions import NotFoundException
 from clients.weather import WeatherClient
 from commands.base import BaseCommandHandler
+
+logger = logging.getLogger(__name__)
 
 
 class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
@@ -30,12 +34,14 @@ class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
             )
             await asyncio.sleep(2)
         try:
-            weather_data = self.get_weather_data("Seoul")
+            weather_data = await asyncio.to_thread(self.get_weather_data, "Seoul")
             text = self.parse_weather_info(weather_data)
         except (
             ConnectionError,
+            httpx.RequestError,
             NotFoundException,
         ):
+            logger.warning("Could not fetch the weather for Korea")
             text = "No he podido obtener tiempo 😢"
         await bot.send_message(
             chat_id=update.effective_chat.id,

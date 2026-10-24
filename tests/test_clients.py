@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import httpx
 import pytest
 
 from clients.exceptions import NotFoundException
@@ -67,6 +68,25 @@ def test_get_weather_data(weather_client):
         mock_get.return_value.json.return_value = {"a": "a"}
         response = weather_client.get_weather_data("Seoul")
     assert {"a": "a"} == response
+    assert mock_get.call_args.kwargs["timeout"] == 10
+
+
+def test_get_weather_data_times_out_quickly(weather_client):
+    with (
+        patch("clients.weather.httpx.get", side_effect=httpx.TimeoutException("boom")),
+        pytest.raises(httpx.TimeoutException),
+    ):
+        weather_client.get_weather_data("Seoul")
+
+
+def test_get_weather_data_raises_on_http_error(weather_client):
+    with patch("clients.weather.httpx.get") as mock_get:
+        mock_get.return_value.status_code = 503
+        mock_get.return_value.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "boom", request=object(), response=object()
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            weather_client.get_weather_data("Seoul")
 
 
 def test_not_found_weather_data(weather_client):

@@ -4,6 +4,8 @@ import httpx
 
 from clients.exceptions import NotFoundException
 
+REQUEST_TIMEOUT_SECONDS = 10
+
 
 class WeatherClient:
     def __init__(self) -> None:
@@ -24,11 +26,16 @@ class WeatherClient:
             **kwargs,
         }
 
-    def get_weather_data(self, city_name):
+    def get_weather_data(self, city_name: str) -> dict:
         params = self.get_params(q=city_name)
-        response = httpx.get(self.WEATHER_ENDPOINT, params=params)
+        response = httpx.get(
+            self.WEATHER_ENDPOINT,
+            params=params,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
         if response.status_code == 404:
             raise NotFoundException()
+        response.raise_for_status()
         return response.json()
 
     def parse_weather_info(self, weather_data):
