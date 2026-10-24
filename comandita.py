@@ -2,7 +2,7 @@ import logging.config
 import os
 
 from dotenv import load_dotenv
-from telegram.ext import Application, CallbackContext, PicklePersistence
+from telegram.ext import Application, CallbackContext
 
 from chat_statistics import ChatStatisticsMessageHandlerFactory
 from commands import (
@@ -14,6 +14,7 @@ from commands import (
 from commands.chat_statistics import ChatStatisticsCommandHandler
 from feature_flags import ReactionsFlagCommandHandler
 from media_downloads.handler import MediaMessageHandler
+from persistence import ResilientPicklePersistence
 from reactions import ReactionHandlerFactory
 
 load_dotenv()
@@ -83,7 +84,9 @@ def main():
             "BOT_TOKEN is not set. Configure it in the environment or .env file."
         )
 
-    persistence = PicklePersistence(filepath=PERSISTENCE_PATH, update_interval=30)
+    persistence = ResilientPicklePersistence(
+        filepath=PERSISTENCE_PATH, update_interval=30
+    )
     application = (
         Application.builder()
         .token(bot_token)
