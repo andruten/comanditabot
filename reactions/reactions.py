@@ -27,7 +27,6 @@ class Reaction(ABC):
         super().__init__()
         self.message = message
         self.probability = probability if probability else self.probability
-        self.shall_i_send_it()
 
     def shall_i_send_it(self) -> bool:
         # Only response with a PROBABILITY
@@ -43,39 +42,43 @@ class Reaction(ABC):
 
 
 @dataclass
-class Registry:
+class Registration:
     code: str
-    reaction_class: Reaction
+    priority: int
+    reaction_class: type["Reaction"]
 
 
 class ReactionRegistry:
+    _registries: ClassVar[list[Registration]] = []
+
     @classmethod
     def register(cls, code: str, priority: int = 1):
-        def wrapper(registry: Reaction):
-            registries = cls.get_registries()
-            registries.insert(priority, Registry(code=code, reaction_class=registry))
-            setattr(cls, "__registries", registries)
-            return registry
+        def wrapper(reaction_class: type[Reaction]) -> type[Reaction]:
+            cls._registries.append(
+                Registration(
+                    code=code, priority=priority, reaction_class=reaction_class
+                )
+            )
+            cls._registries.sort(key=lambda registration: registration.priority)
+            return reaction_class
 
         return wrapper
 
     @classmethod
-    def get_registries(cls) -> list[Registry]:
-        registries = getattr(cls, "__registries", [])
-        return registries
+    def get_registries(cls) -> list[Registration]:
+        return list(cls._registries)
 
     @classmethod
     def process_message(
-        cls, message: str, disabled_codes: Iterable[str] | None = None
+        cls, message: str | None, disabled_codes: Iterable[str] | None = None
     ) -> Reaction:
         disabled = set(disabled_codes) if disabled_codes else set()
-        registry: Registry
-        for registry in cls.get_registries():
-            if registry.code in disabled:
+        for registration in cls.get_registries():
+            if registration.code in disabled:
                 continue
-            registry: Reaction = registry.reaction_class(message)
-            if registry.trigger() and registry.shall_i_send_it():
-                return registry
+            reaction = registration.reaction_class(message)
+            if reaction.trigger() and reaction.shall_i_send_it():
+                return reaction
         raise DoNothingException()
 
 
