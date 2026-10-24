@@ -77,18 +77,23 @@ def configure_handlers(application):
 
 
 def main():
+    bot_token = os.environ.get("BOT_TOKEN")
+    if not bot_token:
+        raise SystemExit(
+            "BOT_TOKEN is not set. Configure it in the environment or .env file."
+        )
+
     persistence = PicklePersistence(filepath=PERSISTENCE_PATH, update_interval=30)
     application = (
         Application.builder()
-        .token(os.environ.get("BOT_TOKEN"))
+        .token(bot_token)
         .persistence(persistence)
         .concurrent_updates(True)
         .build()
     )
     configure_handlers(application)
+    logger.info("Bot starting...")
     application.run_polling()
-
-    logger.info("Bot started...")
 
 
 if __name__ == "__main__":
