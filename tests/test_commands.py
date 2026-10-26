@@ -1,9 +1,13 @@
+import asyncio
 from datetime import datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 from zoneinfo import ZoneInfo
 
 import pytest
 from freezegun import freeze_time
 
+from clients.weather import WeatherClient
 from commands import (
     MiMiMiCommandHandler,
     PunisherCommandHandler,
@@ -81,3 +85,26 @@ def test_is_korea_awake(weather_in_korea_command_handler):
 @freeze_time("2021-03-31 18:00:00")
 def test_is_korea_sleeping(weather_in_korea_command_handler):
     assert weather_in_korea_command_handler.is_korea_sleeping() is True
+
+
+def test_uses_the_injected_weather_client(monkeypatch):
+    client = MagicMock(spec=WeatherClient)
+    client.get_weather_data.return_value = {}
+    client.parse_weather_info.return_value = "Soleado"
+    handler = WeatherInKoreaCommandHandler(weather_client=client)
+    monkeypatch.setattr(
+        "commands.weather_in_korea.asyncio.sleep", AsyncMock(return_value=None)
+    )
+
+    bot = MagicMock()
+    bot.send_chat_action = AsyncMock()
+    bot.send_message = AsyncMock()
+    update = SimpleNamespace(
+        effective_chat=SimpleNamespace(id=123), message=SimpleNamespace()
+    )
+    context = SimpleNamespace(bot=bot)
+
+    asyncio.run(handler.process(update, context))
+
+    client.get_weather_data.assert_called_once_with("Seoul")
+    bot.send_message.assert_called_with(chat_id=123, text="Soleado")

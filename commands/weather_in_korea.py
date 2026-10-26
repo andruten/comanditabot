@@ -15,8 +15,12 @@ from commands.base import BaseCommandHandler
 logger = logging.getLogger(__name__)
 
 
-class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
+class WeatherInKoreaCommandHandler(BaseCommandHandler):
     COMMAND_NAME = "tiempoencorea"
+
+    def __init__(self, weather_client: WeatherClient | None = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._weather_client = weather_client or WeatherClient()
 
     async def process(self, update: Update, context: CallbackContext):
         await context.bot.send_chat_action(
@@ -34,8 +38,10 @@ class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
             )
             await asyncio.sleep(2)
         try:
-            weather_data = await asyncio.to_thread(self.get_weather_data, "Seoul")
-            text = self.parse_weather_info(weather_data)
+            weather_data = await asyncio.to_thread(
+                self._weather_client.get_weather_data, "Seoul"
+            )
+            text = self._weather_client.parse_weather_info(weather_data)
         except (
             ConnectionError,
             httpx.RequestError,
