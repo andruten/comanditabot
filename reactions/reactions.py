@@ -15,7 +15,12 @@ from telegram.ext import CallbackContext, MessageHandler, filters
 from feature_flags.store import FeatureFlagStore
 from media_downloads.urls import supported_urls
 
-from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
+from .constants import (
+    MIMIMI_REACTION_PROBABILITY,
+    PUNISHMENT_REACTION_PROBABILITY,
+    RAJOY_PHRASES,
+    ZAPATERO_PHRASES,
+)
 from .exceptions import DoNothingException
 
 logger = logging.getLogger(__name__)
@@ -149,9 +154,9 @@ class BrokenGroupReaction(Reaction):
 
 @ReactionRegistry.register("mimimi", priority=6)
 class MiMiMiReaction(Reaction):
-    probability = 1
+    probability = MIMIMI_REACTION_PROBABILITY
     reply = True
-    description = "Traduce el mensaje a mimimi (1% de las veces)"
+    description = "Traduce el mensaje a mimimi (configurable, 1% por defecto)"
     REPLACES = (
         ("[aeou]", "i"),
         ("[AEOU]", "I"),
@@ -180,11 +185,9 @@ class MiMiMiReaction(Reaction):
 
 @ReactionRegistry.register("punishment", priority=0)
 class PunishmentReaction(Reaction):
-    probability = 10
+    probability = PUNISHMENT_REACTION_PROBABILITY
     reply = True
-    description = (
-        "Sentencia aleatoria cuando alguien comparte una URL (10% de las veces)"
-    )
+    description = "Sentencia aleatoria cuando alguien comparte una URL (configurable, 10% por defecto)"
     PUNISHMENTS: ClassVar[list] = [
         "Esto tiene, por lo menos, 3 días.",
         "O sea, chao.",

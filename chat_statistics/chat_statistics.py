@@ -1,8 +1,12 @@
 import datetime
 import logging
+import os
 from dataclasses import dataclass, field
 from random import randint
-from typing import ClassVar
+from typing import ClassVar, Final
+
+ALERT_MIN_MESSAGES: Final[int] = int(os.environ.get("STATS_ALERT_MIN_MESSAGES", "200"))
+ALERT_MAX_MESSAGES: Final[int] = int(os.environ.get("STATS_ALERT_MAX_MESSAGES", "300"))
 
 from telegram import Bot, Message, Update
 from telegram.ext import CallbackContext, MessageHandler, filters
@@ -32,7 +36,7 @@ class DailyStatistics:
     alert_when: int = field(init=False)
 
     def __post_init__(self):
-        self.alert_when = randint(200, 300)
+        self.alert_when = randint(ALERT_MIN_MESSAGES, ALERT_MAX_MESSAGES)
 
     @property
     def threshold_reached(self) -> bool:
