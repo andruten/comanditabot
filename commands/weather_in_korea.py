@@ -14,8 +14,12 @@ from commands.base import BaseCommandHandler, fake_typing
 logger = logging.getLogger(__name__)
 
 
-class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
+class WeatherInKoreaCommandHandler(BaseCommandHandler):
     COMMAND_NAME = "tiempoencorea"
+
+    def __init__(self, weather_client: WeatherClient | None = None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._weather_client = weather_client or WeatherClient()
 
     async def process(self, update: Update, context: CallbackContext):
         bot: Bot = context.bot
@@ -25,8 +29,10 @@ class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
             await bot.send_message(chat_id=chat_id, text="Dormida... 😡")
             await fake_typing(bot, chat_id, seconds=2)
         try:
-            weather_data = await asyncio.to_thread(self.get_weather_data, "Seoul")
-            text = self.parse_weather_info(weather_data)
+            weather_data = await asyncio.to_thread(
+                self._weather_client.get_weather_data, "Seoul"
+            )
+            text = self._weather_client.parse_weather_info(weather_data)
         except (
             ConnectionError,
             httpx.RequestError,
