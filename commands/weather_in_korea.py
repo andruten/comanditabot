@@ -5,12 +5,11 @@ from zoneinfo import ZoneInfo
 
 import httpx
 from telegram import Bot, Update
-from telegram.constants import ChatAction
 from telegram.ext import CallbackContext
 
 from clients.exceptions import NotFoundException
 from clients.weather import WeatherClient
-from commands.base import BaseCommandHandler
+from commands.base import BaseCommandHandler, fake_typing
 
 logger = logging.getLogger(__name__)
 
@@ -19,20 +18,12 @@ class WeatherInKoreaCommandHandler(WeatherClient, BaseCommandHandler):
     COMMAND_NAME = "tiempoencorea"
 
     async def process(self, update: Update, context: CallbackContext):
-        await context.bot.send_chat_action(
-            chat_id=update.effective_chat.id, action=ChatAction.TYPING
-        )
-        await asyncio.sleep(1)
         bot: Bot = context.bot
+        chat_id = update.effective_chat.id
+        await fake_typing(bot, chat_id, seconds=1)
         if self.is_korea_sleeping():
-            await bot.send_message(
-                chat_id=update.effective_chat.id, text="Dormida... 😡"
-            )
-            await asyncio.sleep(1)
-            await context.bot.send_chat_action(
-                chat_id=update.effective_chat.id, action=ChatAction.TYPING
-            )
-            await asyncio.sleep(2)
+            await bot.send_message(chat_id=chat_id, text="Dormida... 😡")
+            await fake_typing(bot, chat_id, seconds=2)
         try:
             weather_data = await asyncio.to_thread(self.get_weather_data, "Seoul")
             text = self.parse_weather_info(weather_data)
