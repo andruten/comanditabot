@@ -1,9 +1,13 @@
+import logging
+
 from telegram import Bot, Update
 from telegram.constants import ParseMode
 from telegram.ext import CallbackContext
 
 from commands.base import BaseCommandHandler, fake_typing
 from reactions.reactions import MiMiMiReaction
+
+logger = logging.getLogger(__name__)
 
 
 class MiMiMiCommandHandler(BaseCommandHandler):
@@ -19,6 +23,7 @@ class MiMiMiCommandHandler(BaseCommandHandler):
         try:
             text = self.do_mimimi(update.message.reply_to_message.text)
             if update.message.reply_to_message.text == text:
+                logger.info("Replying an already mimimied message")
                 await bot.send_message(
                     chat_id=update.effective_chat.id,
                     parse_mode=ParseMode.MARKDOWN,
@@ -27,6 +32,7 @@ class MiMiMiCommandHandler(BaseCommandHandler):
                 return
             self.mimimis[text] = update.message.reply_to_message.text
         except AttributeError:
+            logger.warning("/mimimi invoked without a quoted message")
             text = "No puedo hacer mimimi sin citar un mensaje... 😢"
         # "store" the translated value for joking purposes
         await bot.send_message(
