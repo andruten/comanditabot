@@ -1,3 +1,6 @@
+import os
+from typing import Final
+
 RAJOY_PHRASES = [
     "¿Ustedes piensan antes de hablar o hablan tras pensar?",
     (
@@ -64,3 +67,10 @@ ZAPATERO_PHRASES = [
     "España ha vuelto al corazón de Europa",
     "Ser socialista es, normalmente, tener muy poco y estar dispuesto a dar mucho",
 ]
+
+MIMIMI_REACTION_PROBABILITY: Final[int] = int(
+    os.environ.get("MIMIMI_REACTION_PROBABILITY", "1")
+)
+PUNISHMENT_REACTION_PROBABILITY: Final[int] = int(
+    os.environ.get("PUNISHMENT_REACTION_PROBABILITY", "10")
+)

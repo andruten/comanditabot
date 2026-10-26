@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class StarCommandHandler(BaseCommandHandler):
     COMMAND_NAME = "star"
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
         bot: Bot = context.bot
         try:
             await bot.send_message(

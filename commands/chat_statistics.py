@@ -8,7 +8,7 @@ from commands.base import BaseCommandHandler
 class ChatStatisticsCommandHandler(BaseCommandHandler):
     COMMAND_NAME = "stats"
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
         chat_id = update.effective_chat.id
         chat_statistics = ChatStatistics()
         daily_statistics = chat_statistics.get_daily_statistics(chat_id)

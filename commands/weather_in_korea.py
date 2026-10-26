@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -13,6 +14,10 @@ from commands.base import BaseCommandHandler, fake_typing
 
 logger = logging.getLogger(__name__)
 
+KOREA_CITY: str = os.environ.get("KOREA_CITY", "Seoul")
+KOREA_SLEEP_START_HOUR: int = int(os.environ.get("KOREA_SLEEP_START_HOUR", "0"))
+KOREA_SLEEP_END_HOUR: int = int(os.environ.get("KOREA_SLEEP_END_HOUR", "8"))
+
 
 class WeatherInKoreaCommandHandler(BaseCommandHandler):
     COMMAND_NAME = "tiempoencorea"
@@ -21,7 +26,7 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
         super().__init__(*args, **kwargs)
         self._weather_client = weather_client or WeatherClient()
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
         bot: Bot = context.bot
         chat_id = update.effective_chat.id
         await fake_typing(bot, chat_id, seconds=1)
@@ -30,7 +35,7 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
             await fake_typing(bot, chat_id, seconds=2)
         try:
             weather_data = await asyncio.to_thread(
-                self._weather_client.get_weather_data, "Seoul"
+                self._weather_client.get_weather_data, KOREA_CITY
             )
             text = self._weather_client.parse_weather_info(weather_data)
         except (
@@ -45,10 +50,10 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
             text=text,
         )
 
-    def get_utc_now(self):
+    def get_utc_now(self) -> datetime:
         return datetime.now(ZoneInfo("UTC"))
 
-    def is_korea_sleeping(self):
+    def is_korea_sleeping(self) -> bool:
         now_utc = self.get_utc_now()
         now_korea = now_utc.astimezone(ZoneInfo("Asia/Seoul"))
-        return 0 <= now_korea.hour < 8
+        return KOREA_SLEEP_START_HOUR <= now_korea.hour < KOREA_SLEEP_END_HOUR

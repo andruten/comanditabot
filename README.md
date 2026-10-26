@@ -101,6 +101,13 @@ running the bot.
 | `MEDIA_MAX_FILE_SIZE_MB` | `45` | Maximum size per attachment sent back to Telegram |
 | `MEDIA_ENABLE_YOUTUBE` | `true` | Set to `false` to ignore YouTube links |
 | `YOUTUBE_POT_PROVIDER_URL` | unset | Optional URL of a [bgutil YouTube POT provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) sidecar, used by yt-dlp for YouTube challenges |
+| `KOREA_CITY` | `Seoul` | City fetched by `/tiempoencorea` |
+| `KOREA_SLEEP_START_HOUR` | `0` | First hour (KST) of the "Dormida... 😡" window |
+| `KOREA_SLEEP_END_HOUR` | `8` | First hour (KST) after that window |
+| `MIMIMI_REACTION_PROBABILITY` | `1` | Percentage of messages translated to mimimi |
+| `PUNISHMENT_REACTION_PROBABILITY` | `10` | Percentage of shared URLs that get a sentence |
+| `STATS_ALERT_MIN_MESSAGES` | `200` | Lower bound for the random daily alert threshold |
+| `STATS_ALERT_MAX_MESSAGES` | `300` | Upper bound for the random daily alert threshold |
 
 The `youtube-pot-provider/` directory builds that sidecar image; point
 `YOUTUBE_POT_PROVIDER_URL` at it to enable YouTube support behind bot checks.
