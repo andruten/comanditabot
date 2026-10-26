@@ -8,11 +8,11 @@ RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Requirements
-RUN pip install --upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
 
 COPY ./requirements/ .
 ARG requirements
-RUN pip install -r ${requirements:-"pro"}.txt
+RUN pip install --no-cache-dir -r ${requirements:-"pro"}.txt
 
 FROM python:3.14-slim-bookworm
 
