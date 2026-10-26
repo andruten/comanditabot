@@ -20,11 +20,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+
+      - name: Install dependencies
+        run: |
+          # The local targets require a .env file (check_env); dummy values are
+          # fine because the test suite does not use the real bot token.
+          cp env.sample .env
+          pip install -r requirements/dev.txt
+
       - name: Check linting
-        run: make lint_check
+        run: ruff check --show-fixes
 
       - name: Check format
-        run: make format_check
+        run: ruff format --check
 
       - name: Run tests
-        run: make test
+        run: python -m pytest .
