@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import httpx
 
@@ -13,20 +14,20 @@ class WeatherClient:
         self.OPEN_WEATHER_MAP_APP_ID = os.environ.get("OPEN_WEATHER_MAP_APP_ID")
         self.WEATHER_ENDPOINT = "https://api.openweathermap.org/data/2.5/weather"
 
-    def _default_params(self):
+    def _default_params(self) -> dict[str, Any]:
         return {
             "appid": self.OPEN_WEATHER_MAP_APP_ID,
             "units": "metric",
             "lang": "es",
         }
 
-    def get_params(self, **kwargs):
+    def get_params(self, **kwargs: Any) -> dict[str, Any]:
         return {
             **self._default_params(),
             **kwargs,
         }
 
-    def get_weather_data(self, city_name: str) -> dict:
+    def get_weather_data(self, city_name: str) -> dict[str, Any]:
         params = self.get_params(q=city_name)
         response = httpx.get(
             self.WEATHER_ENDPOINT,
@@ -38,7 +39,7 @@ class WeatherClient:
         response.raise_for_status()
         return response.json()
 
-    def parse_weather_info(self, weather_data):
+    def parse_weather_info(self, weather_data: dict[str, Any]) -> str:
         weather_text = ", ".join(
             [
                 weather.get("description", "")

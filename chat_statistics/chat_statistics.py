@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class SingletonMeta(type):
     _instances: ClassVar[dict] = {}
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs) -> "ChatStatistics":
         if cls not in cls._instances:
             instance = super().__call__(*args, **kwargs)
             cls._instances[cls] = instance
@@ -40,7 +40,7 @@ class DailyStatistics:
 
 
 class ChatStatistics(metaclass=SingletonMeta):
-    _daily_counter: ClassVar[dict] = {}
+    _daily_counter: ClassVar[dict[int, dict[str, DailyStatistics]]] = {}
 
     def __eq__(self, o: object) -> bool:
         return id(self) == id(o)
@@ -48,7 +48,7 @@ class ChatStatistics(metaclass=SingletonMeta):
     def get_daily_statistics(self, chat_id: int) -> DailyStatistics:
         if chat_id not in self._daily_counter:
             self._daily_counter[chat_id] = {}
-        today = datetime.datetime.now(datetime.UTC).today().strftime("%Y-%m-%d")
+        today = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d")
         if today not in self._daily_counter[chat_id]:
             self._daily_counter[chat_id][today] = DailyStatistics()
         return self._daily_counter[chat_id][today]
@@ -69,7 +69,9 @@ class ChatStatisticsMessageHandlerFactory(MessageHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(filters.ALL, self.process, *args, **kwargs)
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
+        if not update.effective_chat or not update.effective_message:
+            return
         chat_id = update.effective_chat.id
         chat_statistics = ChatStatistics()
         daily_statistics = chat_statistics.update_daily(
