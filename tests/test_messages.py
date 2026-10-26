@@ -75,6 +75,45 @@ def test_reaction_factory(message, reaction_class):
     assert isinstance(message_instance, reaction_class)
 
 
+def test_instantiating_a_reaction_does_not_roll_the_send_probability(monkeypatch):
+    rolls = []
+    monkeypatch.setattr("reactions.reactions.random", lambda: rolls.append(1) or 0.0)
+
+    RajoyReaction()
+
+    assert rolls == []
+
+
+def test_process_message_rolls_the_send_probability_only_once(monkeypatch):
+    rolls = []
+    monkeypatch.setattr("reactions.reactions.random", lambda: rolls.append(1) or 0.0)
+
+    reaction = ReactionRegistry.process_message("Vas a votar a Rajoy, y lo sabes")
+
+    assert isinstance(reaction, RajoyReaction)
+    assert rolls == [1]
+    assert reaction.shall_i_send_it() is True
+
+
+@pytest.fixture
+def registry_snapshot():
+    registries = ReactionRegistry.get_registries()
+    yield
+    ReactionRegistry._registries[:] = registries
+
+
+def test_registrations_are_sorted_by_priority(registry_snapshot):
+    class DummyReaction(RajoyReaction):
+        pass
+
+    ReactionRegistry.register("low", priority=90)(DummyReaction)
+    ReactionRegistry.register("high", priority=10)(DummyReaction)
+
+    registrations = ReactionRegistry.get_registries()
+    priorities = [registration.priority for registration in registrations]
+    assert priorities == sorted(priorities)
+
+
 @pytest.mark.asyncio
 async def test_reaction_handler_skips_supported_media_links(monkeypatch):
     handler = ReactionHandlerFactory()
