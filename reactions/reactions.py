@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
@@ -16,6 +17,8 @@ from media_downloads.urls import supported_urls
 
 from .constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from .exceptions import DoNothingException
+
+logger = logging.getLogger(__name__)
 
 
 class Reaction(ABC):
@@ -221,6 +224,7 @@ class ReactionHandlerFactory(MessageHandler):
         except DoNothingException:
             pass
         else:
+            logger.info("Reaction %s triggered", type(message_class).__name__)
             await context.bot.send_chat_action(
                 chat_id=update.effective_chat.id, action=ChatAction.TYPING
             )
