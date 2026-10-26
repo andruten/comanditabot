@@ -8,10 +8,10 @@ from reactions.reactions import PunishmentReaction
 class PunisherCommandHandler(BaseCommandHandler):
     COMMAND_NAME = "sentenciador"
 
-    def punish(self):
+    def punish(self) -> str:
         return PunishmentReaction().transform()
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
         await fake_typing(context.bot, update.effective_chat.id)
         bot: Bot = context.bot
         await bot.send_message(

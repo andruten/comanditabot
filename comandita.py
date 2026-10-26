@@ -59,7 +59,7 @@ async def on_error(update: object, context: CallbackContext) -> None:
     logger.error("Unhandled exception while processing update", exc_info=context.error)
 
 
-def configure_handlers(application):
+def configure_handlers(application) -> None:
     application.add_handler(MediaMessageHandler(), group=-1)
 
     # Commands

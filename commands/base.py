@@ -14,7 +14,7 @@ class BaseCommandHandler(CommandHandler):
             raise NotImplementedError("'COMMAND_NAME' has wrong value.")
         super().__init__(self.COMMAND_NAME, self.process, *args, **kwargs)
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
         raise NotImplementedError("'process' method is not implemented!")
 
 

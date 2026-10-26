@@ -21,7 +21,7 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
         super().__init__(*args, **kwargs)
         self._weather_client = weather_client or WeatherClient()
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
         bot: Bot = context.bot
         chat_id = update.effective_chat.id
         await fake_typing(bot, chat_id, seconds=1)
@@ -45,10 +45,10 @@ class WeatherInKoreaCommandHandler(BaseCommandHandler):
             text=text,
         )
 
-    def get_utc_now(self):
+    def get_utc_now(self) -> datetime:
         return datetime.now(ZoneInfo("UTC"))
 
-    def is_korea_sleeping(self):
+    def is_korea_sleeping(self) -> bool:
         now_utc = self.get_utc_now()
         now_korea = now_utc.astimezone(ZoneInfo("Asia/Seoul"))
         return 0 <= now_korea.hour < 8

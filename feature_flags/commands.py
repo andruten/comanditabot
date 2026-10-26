@@ -97,7 +97,7 @@ class ReactionsFlagCommandHandler(BaseCommandHandler):
 
     def _render_status(self, context: CallbackContext, chat_id: int) -> str:
         store = FeatureFlagStore.from_bot_data(context)
-        lines = []
+        lines: list[str] = []
         if store.all_disabled(chat_id):
             lines.append(
                 "🚫 Kill switch activo: todo desactivado (usa /reactions on "
@@ -113,7 +113,7 @@ class ReactionsFlagCommandHandler(BaseCommandHandler):
         return "\n".join(lines)
 
     def _render_catalog(self) -> str:
-        lines = ["Códigos disponibles (usa /reactions on|off <código>):"]
+        lines: list[str] = ["Códigos disponibles (usa /reactions on|off <código>):"]
         for section in SECTIONS:
             lines.append(SECTION_TITLES[section])
             for flag in flag_catalog():

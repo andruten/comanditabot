@@ -206,7 +206,7 @@ class ReactionHandlerFactory(MessageHandler):
             **kwargs,
         )
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
         if supported_urls(update.effective_message.text):
             return
         chat_id = update.effective_chat.id

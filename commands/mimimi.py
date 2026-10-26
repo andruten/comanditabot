@@ -13,7 +13,7 @@ class MiMiMiCommandHandler(BaseCommandHandler):
         super().__init__(*args, **kwargs)
         self.mimimis = {}
 
-    async def process(self, update: Update, context: CallbackContext):
+    async def process(self, update: Update, context: CallbackContext) -> None:
         await fake_typing(context.bot, update.effective_chat.id)
         bot: Bot = context.bot
         try:
@@ -34,5 +34,5 @@ class MiMiMiCommandHandler(BaseCommandHandler):
             text=text,
         )
 
-    def do_mimimi(self, text):
+    def do_mimimi(self, text: str) -> str:
         return MiMiMiReaction(text, probability=100).transform()
