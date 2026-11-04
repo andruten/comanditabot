@@ -59,7 +59,7 @@ Beyond commands, the bot reacts to plain text messages:
 | Message contains `zapatero` or `zp` | Random Zapatero phrase |
 | Message contains `niño`, `niña`, `hijo`, `hija`, `papá`, `papi` | 🚨🚨 Kids Alert! 🚨🚨 |
 | Message contains `estuve en` or `fui a` | "Anda que avisas... El grupo está roto." |
-| Message contains `no sé`, `no sabe`, `no conoce`, `ni idea`, etc. | "Te lo busco en Google..." with an LMGTFY link built from the message |
+| Message hints they are lost (`no sé de qué`, `ni idea`, `no entiendo`, `¿de qué habláis?`, etc.) | "Te lo busco en Google..." with an LMGTFY link. An LLM (if configured, see configuration below) picks the best topic to search, and is only consulted when there is conversation context; otherwise the bot falls back to the replied-to message, recent chat messages, or the message itself |
 | Any message (1% chance) | The message translated to mimimi |
 | A bare URL (10% chance) | A punishment phrase |
 
@@ -109,6 +109,9 @@ running the bot.
 | `PUNISHMENT_REACTION_PROBABILITY` | `10` | Percentage of shared URLs that get a sentence |
 | `STATS_ALERT_MIN_MESSAGES` | `200` | Lower bound for the random daily alert threshold |
 | `STATS_ALERT_MAX_MESSAGES` | `300` | Upper bound for the random daily alert threshold |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` | Base URL of an OpenAI-compatible chat API (OpenRouter, Ollama, LM Studio...) |
+| `LLM_API_KEY` | unset | API key for the LLM that picks the topic searched by the LMGTFY reaction; when unset the reaction searches the conversation text as-is |
+| `LLM_MODEL` | `gpt-4o-mini` | Chat model sent to the LLM API |
 
 The `youtube-pot-provider/` directory builds that sidecar image; point
 `YOUTUBE_POT_PROVIDER_URL` at it to enable YouTube support behind bot checks.

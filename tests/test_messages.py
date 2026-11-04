@@ -1,3 +1,4 @@
+import urllib.parse
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
@@ -5,13 +6,16 @@ import pytest
 from telegram import Chat, Message, Update
 
 from reactions.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
+from reactions.history import chat_history
 from reactions.reactions import (
     BrokenGroupReaction,
+    DigiReaction,
     KidsAlertReaction,
     LmgifyReaction,
     MiMiMiReaction,
     PunishmentReaction,
     RajoyReaction,
+    ReactionContext,
     ReactionHandlerFactory,
     ReactionRegistry,
     ZapateroReaction,
@@ -64,30 +68,111 @@ def test_lmgify_message():
     lmgify_handler = LmgifyReaction(message=message)
     assert lmgify_handler.reply is True
     assert lmgify_handler.trigger() is True
+    assert lmgify_handler.transform() == (
+        "Te lo busco en Google... https://lmgtfy.com/?q=un+nodo+Kubernetes"
+    )
+
+
+def test_lmgify_uses_the_replied_message_as_topic():
+    lmgify_handler = LmgifyReaction(
+        message="No sé de qué habláis",
+        context=ReactionContext(
+            reply_text="Qué buena banda es Angine de Poitrine",
+            history=["Sí, me encantan"],
+        ),
+    )
     transformed_message = lmgify_handler.transform()
-    assert transformed_message.startswith("Te lo busco en Google... ")
-    assert "https://lmgtfy.com/?q=" in transformed_message
-    assert "nodo+Kubernetes" in transformed_message
+    assert "Angine+de+Poitrine" in transformed_message
+    assert "encantan" not in transformed_message
+
+
+def test_lmgify_skips_short_banter_and_picks_the_last_substantial_message():
+    lmgify_handler = LmgifyReaction(
+        message="no sé de qué habláis",
+        context=ReactionContext(
+            history=[
+                "¿Alguien conoce Angine de Poitrine?",
+                "Sí, me encantan",
+            ]
+        ),
+    )
+    assert "Angine+de+Poitrine" in lmgify_handler.transform()
+
+
+def test_lmgify_ignores_commands_and_links_in_the_history():
+    lmgify_handler = LmgifyReaction(
+        message="no pillo nada",
+        context=ReactionContext(
+            history=[
+                "/star",
+                "mira esto https://example.com/x",
+                "Qué buena banda es Angine de Poitrine",
+            ]
+        ),
+    )
+    assert "Angine+de+Poitrine" in lmgify_handler.transform()
+
+
+def test_lmgify_combines_recent_short_messages_as_a_last_resort():
+    lmgify_handler = LmgifyReaction(
+        message="ni idea de lo que decís",
+        context=ReactionContext(history=["iones", "fantasmas"]),
+    )
+    assert "iones+fantasmas" in lmgify_handler.transform()
+
+
+@pytest.mark.parametrize(
+    "context",
+    [None, ReactionContext()],
+)
+def test_lmgify_falls_back_to_the_message_topic(context):
+    lmgify_handler = LmgifyReaction(
+        message="No sé qué es un nodo Kubernetes", context=context
+    )
+    assert "un+nodo+Kubernetes" in lmgify_handler.transform()
+
+
+@pytest.mark.parametrize(
+    "message,context",
+    [
+        ("Ni idea", None),
+        ("Ni idea", ReactionContext()),
+        ("No sé", None),
+    ],
+)
+def test_lmgify_replies_without_link_when_there_is_nothing_to_search(message, context):
+    lmgify_handler = LmgifyReaction(message=message, context=context)
+    assert lmgify_handler.transform() == LmgifyReaction.NO_TOPIC_REPLY
 
 
 @pytest.mark.parametrize(
     "message",
     [
-        "No sé como se hace esto",
-        "No lo sé",
-        "No sabía yo",
-        "El tío no sabe de qué va",
-        "No sabéis nada de esto",
-        "No sabemos",
-        "No conoce este bar",
-        "Yo no conozco la respuesta",
+        "No sé de qué habláis",
+        "no sé de qué va la peli",
+        "No sé qué es un nodo Kubernetes",
+        "no sé qué significa ese meme",
+        "No sé ni qué estáis contando",
+        "No sé por dónde va la cosa",
         "No tengo ni idea",
         "Ni idea",
+        "ni idea de la peli",
         "no pillo",
-        "NO SÉ",
+        "no pillo nada de esto",
+        "No pilláis nada",
+        "No me entero del asunto",
+        "No entiendo el chiste",
+        "no entiendo nada",
+        "¿De qué habláis?",
+        "de qué hablas",
+        "¿De qué hablamos?",
+        "De qué va eso",
+        "¿Qué es eso?",
+        "¿Qué es esto?",
+        "Hostia, no sé qué es eso",
     ],
 )
-def test_lmgify_triggers_on_ignorance_phrases(message):
+def test_lmgify_triggers_on_being_lost_phrases(message):
     assert LmgifyReaction(message=message).trigger() is True
 
 
@@ -97,18 +182,150 @@ def test_lmgify_triggers_on_ignorance_phrases(message):
         "Hoy hace sol",
         "El nodo Kubernetes está caído",
         "No es lo mismo",
+        "No sé si vendré mañana",
+        "no sé si os apetece tener la final",
+        "El que no sabe es porque no quiere",
+        "El tío no sabe de qué va",
+        "No sabe ni su nombre",
+        "No sabía yo",
+        "No sabéis nada de esto",
+        "No sabemos",
+        "No sabe nada del proyecto",
+        "No lo sé",
+        "No sé",
+        "No conoce este bar",
+        "Yo no conozco la respuesta",
+        "No conozco ninguna de las dos",
+        "No sé qué cenar hoy",
+        "una idea genial",
+        "Dame una idea para el finde",
     ],
 )
 def test_lmgify_does_not_trigger_on_other_messages(message):
     assert LmgifyReaction(message=message).trigger() is False
 
 
-def test_lmgify_transform_truncates_long_messages():
-    message = "No sé " + "x" * 500
+def test_lmgify_strips_ignorance_phrases_left_in_the_topic():
+    lmgify_handler = LmgifyReaction(
+        message="no tengo ni idea, no sé de qué va esto", context=ReactionContext()
+    )
+    query = lmgify_handler.transform().split("?q=", 1)[1]
+    unquoted = urllib.parse.unquote_plus(query)
+    assert unquoted == "va esto"
+    assert "no sé" not in unquoted.lower()
+
+
+def test_lmgify_transform_truncates_long_topics_on_word_boundaries():
+    message = "No sé qué es " + "aa " * 200
     transformed_message = LmgifyReaction(message=message).transform()
     query = transformed_message.split("?q=", 1)[1]
-    # The raw query is capped before URL encoding: "No sé " (6) + 194 "x" = 200
-    assert query == "No+s%C3%A9+" + "x" * 194
+    # Trims back to the last whole word that fits in 200 characters.
+    assert urllib.parse.unquote_plus(query) == " ".join(["aa"] * 66)
+
+
+def test_process_message_passes_context_to_reactions():
+    reaction = ReactionRegistry.process_message(
+        "No sé de qué habláis",
+        context=ReactionContext(reply_text="¿Alguien conoce Angine de Poitrine?"),
+    )
+    assert isinstance(reaction, LmgifyReaction)
+    assert "Angine+de+Poitrine" in reaction.transform()
+
+
+def test_lmgify_transform_prefers_the_query_resolved_by_the_llm():
+    lmgify_handler = LmgifyReaction(
+        message="no sé de qué va", context=ReactionContext()
+    )
+    lmgify_handler.resolved_query = "Angine de Poitrine"
+    assert lmgify_handler.transform() == (
+        "Te lo busco en Google... https://lmgtfy.com/?q=Angine+de+Poitrine"
+    )
+
+
+class StubLlmClient:
+    def __init__(self, configured=True, query="Angine de Poitrine"):
+        self.is_configured = configured
+        self.query = query
+        self.calls = []
+
+    async def extract_search_query(self, message, reply_text=None, history=()):
+        self.calls.append((message, reply_text, list(history)))
+        return self.query
+
+
+@pytest.mark.asyncio
+async def test_lmgify_prepare_asks_the_llm_for_the_topic(monkeypatch):
+    stub = StubLlmClient()
+    monkeypatch.setattr("reactions.reactions.llm_client", stub)
+    lmgify_handler = LmgifyReaction(
+        message="no sé de qué habláis",
+        context=ReactionContext(
+            reply_text="Qué buena banda es Angine de Poitrine",
+            history=["Sí, me encantan"],
+        ),
+    )
+
+    await lmgify_handler.prepare()
+
+    assert lmgify_handler.resolved_query == "Angine de Poitrine"
+    assert stub.calls == [
+        (
+            "no sé de qué habláis",
+            "Qué buena banda es Angine de Poitrine",
+            ["Sí, me encantan"],
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_lmgify_prepare_ignores_an_llm_repeating_the_message(monkeypatch):
+    stub = StubLlmClient(query="No sé de qué va")
+    monkeypatch.setattr("reactions.reactions.llm_client", stub)
+    lmgify_handler = LmgifyReaction(
+        message="no sé de qué va", context=ReactionContext()
+    )
+
+    await lmgify_handler.prepare()
+
+    assert lmgify_handler.resolved_query is None
+
+
+@pytest.mark.asyncio
+async def test_lmgify_prepare_skips_the_llm_when_unconfigured(monkeypatch):
+    stub = StubLlmClient(configured=False)
+    monkeypatch.setattr("reactions.reactions.llm_client", stub)
+    lmgify_handler = LmgifyReaction(
+        message="no sé de qué va",
+        context=ReactionContext(history=["tema interesante del grupo"]),
+    )
+
+    await lmgify_handler.prepare()
+
+    assert stub.calls == []
+    assert lmgify_handler.resolved_query is None
+
+
+@pytest.mark.asyncio
+async def test_lmgify_prepare_skips_the_llm_without_conversation_material(monkeypatch):
+    stub = StubLlmClient()
+    monkeypatch.setattr("reactions.reactions.llm_client", stub)
+    lmgify_handler = LmgifyReaction(
+        message="no sé de qué habláis", context=ReactionContext()
+    )
+
+    await lmgify_handler.prepare()
+
+    assert stub.calls == []
+    assert lmgify_handler.resolved_query is None
+
+
+@pytest.mark.asyncio
+async def test_lmgify_prepare_skips_the_llm_without_context():
+    lmgify_handler = LmgifyReaction(message="no sé de qué va")
+
+    await lmgify_handler.prepare()
+
+    assert lmgify_handler.resolved_query is None
 
 
 @pytest.mark.parametrize(
@@ -120,6 +337,7 @@ def test_lmgify_transform_truncates_long_messages():
         ("Probando, probando", MiMiMiReaction),
         ("El otro día estuve en casa de mi tía", BrokenGroupReaction),
         ("El otro día fui a casa de mi tía", BrokenGroupReaction),
+        ("Digi, no sé nada de esto", DigiReaction),
         ("Hostia, no sé qué es eso", LmgifyReaction),
     ],
 )
@@ -127,6 +345,13 @@ def test_reaction_factory(message, reaction_class):
     reaction_class.probability = 100
     message_instance = ReactionRegistry.process_message(message)
     assert isinstance(message_instance, reaction_class)
+
+
+def test_reaction_priorities_are_unique():
+    priorities = [
+        registration.priority for registration in ReactionRegistry.get_registries()
+    ]
+    assert len(priorities) == len(set(priorities))
 
 
 def test_instantiating_a_reaction_does_not_roll_the_send_probability(monkeypatch):
@@ -258,3 +483,48 @@ async def test_reaction_handler_replies_via_effective_message(monkeypatch):
     await handler.process(update, context)
 
     assert recorder.texts == ["🚨🚨 Kids Alert! 🚨🚨"]
+
+
+@pytest.mark.asyncio
+async def test_reaction_handler_lets_the_llm_resolve_the_lmgify_topic(monkeypatch):
+    stub = StubLlmClient()
+    monkeypatch.setattr("reactions.reactions.llm_client", stub)
+    monkeypatch.setattr("reactions.reactions.randint", lambda _a, _b: 0)
+
+    class DummyBot:
+        async def send_chat_action(self, chat_id, action):
+            pass
+
+    handler = ReactionHandlerFactory()
+    recorder = SimpleNamespace(texts=[])
+
+    async def reply_text(text):
+        recorder.texts.append(text)
+
+    update = SimpleNamespace(
+        effective_message=SimpleNamespace(
+            text="no sé de qué habláis", reply_text=reply_text
+        ),
+        effective_chat=SimpleNamespace(id=7),
+    )
+    context = SimpleNamespace(
+        application=SimpleNamespace(bot_data={}),
+        bot=DummyBot(),
+    )
+
+    # The LLM is only consulted when the chat has conversation context.
+    chat_history.add(7, "Qué buena banda es Angine de Poitrine")
+    chat_history.add(7, "Sí, me encantan")
+    try:
+        await handler.process(update, context)
+    finally:
+        chat_history.clear(7)
+
+    assert recorder.texts == [
+        "Te lo busco en Google... https://lmgtfy.com/?q=Angine+de+Poitrine"
+    ]
+    assert stub.calls[0][0] == "no sé de qué habláis"
+    assert stub.calls[0][2] == [
+        "Qué buena banda es Angine de Poitrine",
+        "Sí, me encantan",
+    ]
