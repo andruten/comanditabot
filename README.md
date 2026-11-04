@@ -59,6 +59,7 @@ Beyond commands, the bot reacts to plain text messages:
 | Message contains `zapatero` or `zp` | Random Zapatero phrase |
 | Message contains `niño`, `niña`, `hijo`, `hija`, `papá`, `papi` | 🚨🚨 Kids Alert! 🚨🚨 |
 | Message contains `estuve en` or `fui a` | "Anda que avisas... El grupo está roto." |
+| Message contains `no sé`, `no sabe`, `no conoce`, `ni idea`, etc. | "Te lo busco en Google..." with an LMGTFY link built from the message |
 | Any message (1% chance) | The message translated to mimimi |
 | A bare URL (10% chance) | A punishment phrase |
 
