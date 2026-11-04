@@ -8,6 +8,7 @@ from reactions.constants import RAJOY_PHRASES, ZAPATERO_PHRASES
 from reactions.reactions import (
     BrokenGroupReaction,
     KidsAlertReaction,
+    LmgifyReaction,
     MiMiMiReaction,
     PunishmentReaction,
     RajoyReaction,
@@ -58,6 +59,58 @@ def test_message_broken_group():
     assert transformed_message == "Anda que avisas... El grupo está roto."
 
 
+def test_lmgify_message():
+    message = "No sé qué es un nodo Kubernetes"
+    lmgify_handler = LmgifyReaction(message=message)
+    assert lmgify_handler.reply is True
+    assert lmgify_handler.trigger() is True
+    transformed_message = lmgify_handler.transform()
+    assert transformed_message.startswith("Te lo busco en Google... ")
+    assert "https://lmgtfy.com/?q=" in transformed_message
+    assert "nodo+Kubernetes" in transformed_message
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "No sé como se hace esto",
+        "No lo sé",
+        "No sabía yo",
+        "El tío no sabe de qué va",
+        "No sabéis nada de esto",
+        "No sabemos",
+        "No conoce este bar",
+        "Yo no conozco la respuesta",
+        "No tengo ni idea",
+        "Ni idea",
+        "no pillo",
+        "NO SÉ",
+    ],
+)
+def test_lmgify_triggers_on_ignorance_phrases(message):
+    assert LmgifyReaction(message=message).trigger() is True
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Hoy hace sol",
+        "El nodo Kubernetes está caído",
+        "No es lo mismo",
+    ],
+)
+def test_lmgify_does_not_trigger_on_other_messages(message):
+    assert LmgifyReaction(message=message).trigger() is False
+
+
+def test_lmgify_transform_truncates_long_messages():
+    message = "No sé " + "x" * 500
+    transformed_message = LmgifyReaction(message=message).transform()
+    query = transformed_message.split("?q=", 1)[1]
+    # The raw query is capped before URL encoding: "No sé " (6) + 194 "x" = 200
+    assert query == "No+s%C3%A9+" + "x" * 194
+
+
 @pytest.mark.parametrize(
     "message,reaction_class",
     [
@@ -67,6 +120,7 @@ def test_message_broken_group():
         ("Probando, probando", MiMiMiReaction),
         ("El otro día estuve en casa de mi tía", BrokenGroupReaction),
         ("El otro día fui a casa de mi tía", BrokenGroupReaction),
+        ("Hostia, no sé qué es eso", LmgifyReaction),
     ],
 )
 def test_reaction_factory(message, reaction_class):

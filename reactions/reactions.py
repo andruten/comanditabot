@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import urllib.parse
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -150,6 +151,40 @@ class BrokenGroupReaction(Reaction):
 
     def trigger(self) -> bool:
         return any(x in self.message.lower() for x in ["estuve en", "fui a"])
+
+
+# Priority 5: after the deterministic joke reactions but before mimimi's dice
+# roll (6), so a "no sé" message is not randomly consumed by a mimimi translation.
+@ReactionRegistry.register("lmgify", priority=5)
+class LmgifyReaction(Reaction):
+    reply = True
+    description = (
+        '"Let me google that for you" cuando alguien dice que no sabe o no conoce algo'
+    )
+    TRIGGERS: ClassVar[list] = [
+        "no sé",
+        "no lo sé",
+        "no sabía",
+        "no sabe",
+        "no sabéis",
+        "no sabemos",
+        "no conoce",
+        "no conoces",
+        "no conozco",
+        "no tengo ni idea",
+        "ni idea",
+        "no pillo",
+        "no pilla",
+    ]
+    MAX_QUERY_LENGTH: ClassVar[int] = 200
+
+    def transform(self):
+        query = urllib.parse.quote_plus(self.message[: self.MAX_QUERY_LENGTH])
+        return f"Te lo busco en Google... https://lmgtfy.com/?q={query}"
+
+    def trigger(self) -> bool:
+        message = self.message.lower()
+        return any(phrase in message for phrase in self.TRIGGERS)
 
 
 @ReactionRegistry.register("mimimi", priority=6)
