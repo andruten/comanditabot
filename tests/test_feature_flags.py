@@ -328,7 +328,7 @@ async def test_reaction_handler_passes_disabled_codes(monkeypatch):
     context = make_context([], bot_data)
     captured = {}
 
-    def fake_process_message(_message, disabled_codes=None):
+    def fake_process_message(_message, disabled_codes=None, context=None):
         captured["disabled_codes"] = disabled_codes
         raise DoNothingException()
 
