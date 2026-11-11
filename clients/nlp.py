@@ -38,6 +38,10 @@ MAX_CANDIDATES = 10
 MAX_CANDIDATE_LENGTH = 200
 
 QUOTED_TEXT_PATTERN = re.compile(r"[«“\"']([^«»“”\"']{3,})[»”\"']")
+EDGE_PUNCTUATION = "¿?¡!.,;:-«»“”\"'"
+GLUE_WORDS: ClassVar[frozenset[str]] = frozenset(
+    {"de", "del", "la", "el", "los", "las", "y", "e"}
+)
 
 
 class SpacyTopicExtractor:
@@ -106,6 +110,8 @@ class SpacyTopicExtractor:
                 cleaned = entity.text.strip("¿?¡!.,;:").lower()
                 if all(word in NOISE_WORDS for word in cleaned.split()):
                     continue
+                if not self._is_valid_entity(entity.text):
+                    continue
                 # Small models split multi-word proper nouns; when the
                 # capitalized run of the same text contains the entity, the
                 # full run is the better query.
@@ -137,6 +143,23 @@ class SpacyTopicExtractor:
     # --- layers --------------------------------------------------------------
 
     @staticmethod
+    def _is_valid_entity(text: str) -> bool:
+        """Chat slang makes small models label junk as entities ("qué bandaza"
+        comes out as a person). A real entity is built from capitalized
+        tokens, glue words or noise words only.
+        """
+        tokens = [token.strip(EDGE_PUNCTUATION) for token in text.split()]
+        return all(
+            token
+            and (
+                token.lower() in NOISE_WORDS
+                or token.lower() in GLUE_WORDS
+                or token[0].isupper()
+            )
+            for token in tokens
+        )
+
+    @staticmethod
     def _noun_topic(doc) -> str | None:
         """Longest non-noise noun of the text, for lowercase topics like
         "me flipa internet" that no other layer can isolate."""
@@ -157,8 +180,12 @@ class SpacyTopicExtractor:
 
     @staticmethod
     def _capitalized_topic(text: str) -> str | None:
-        tokens = text.split()
-        glue = {"de", "del", "la", "el", "los", "las", "y", "e"}
+        tokens = [
+            token
+            for token in (raw.strip(EDGE_PUNCTUATION) for raw in text.split())
+            if token
+        ]
+        glue = GLUE_WORDS
         best_run: list[str] = []
         run: list[str] = []
         glue_streak = 0
