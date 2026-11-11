@@ -1,3 +1,4 @@
+import asyncio
 import logging.config
 import os
 
@@ -5,7 +6,9 @@ from dotenv import load_dotenv
 from telegram.ext import Application, CallbackContext
 
 from chat_statistics import ChatStatisticsMessageHandlerFactory
+from clients.nlp import topic_extractor
 from commands import (
+    LmgtfyCommandHandler,
     MiMiMiCommandHandler,
     PunisherCommandHandler,
     StarCommandHandler,
@@ -59,10 +62,20 @@ async def on_error(update: object, context: CallbackContext) -> None:
     logger.error("Unhandled exception while processing update", exc_info=context.error)
 
 
+async def warm_up_topic_extractor(_application) -> None:
+    """Load the spaCy NER model before the bot accepts any update.
+
+    post_init runs after initialize() and before polling starts, so the
+    LMGTFY reaction never hits a cold model load in production.
+    """
+    await asyncio.to_thread(topic_extractor.ensure_loaded)
+
+
 def configure_handlers(application) -> None:
     application.add_handler(MediaMessageHandler(), group=-1)
 
     # Commands
+    application.add_handler(LmgtfyCommandHandler())
     application.add_handler(MiMiMiCommandHandler())
     application.add_handler(PunisherCommandHandler())
     application.add_handler(StarCommandHandler())
@@ -91,6 +104,7 @@ def main():
         Application.builder()
         .token(bot_token)
         .persistence(persistence)
+        .post_init(warm_up_topic_extractor)
         .concurrent_updates(True)
         .build()
     )
