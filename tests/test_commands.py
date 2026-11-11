@@ -9,6 +9,7 @@ from freezegun import freeze_time
 
 from clients.weather import WeatherClient
 from commands import (
+    LmgtfyCommandHandler,
     MiMiMiCommandHandler,
     PunisherCommandHandler,
     StarCommandHandler,
@@ -108,3 +109,83 @@ def test_uses_the_injected_weather_client(monkeypatch):
 
     client.get_weather_data.assert_called_once_with("Seoul")
     bot.send_message.assert_called_with(chat_id=123, text="Soleado")
+
+
+# lmgtfy
+
+
+@pytest.fixture
+def lmgtfy_command_handler():
+    return LmgtfyCommandHandler()
+
+
+@pytest.mark.asyncio
+async def test_lmgtfy_without_a_quoted_message(lmgtfy_command_handler, monkeypatch):
+    monkeypatch.setattr("commands.lmgtfy.fake_typing", AsyncMock())
+    bot = MagicMock()
+    bot.send_chat_action = AsyncMock()
+    bot.send_message = AsyncMock()
+    update = SimpleNamespace(
+        effective_chat=SimpleNamespace(id=123),
+        message=SimpleNamespace(reply_to_message=None),
+    )
+    context = SimpleNamespace(bot=bot)
+
+    await lmgtfy_command_handler.process(update, context)
+
+    bot.send_message.assert_called_once_with(
+        chat_id=123, text="No puedo googlear sin citar un mensaje... 😢"
+    )
+
+
+@pytest.mark.asyncio
+async def test_lmgtfy_googles_the_quoted_topic(lmgtfy_command_handler, monkeypatch):
+    monkeypatch.setattr("commands.lmgtfy.fake_typing", AsyncMock())
+    monkeypatch.setattr(
+        "commands.lmgtfy.topic_extractor",
+        SimpleNamespace(extract_topic=lambda text: "Angine de Poitrine"),
+    )
+    bot = MagicMock()
+    bot.send_chat_action = AsyncMock()
+    bot.send_message = AsyncMock()
+    update = SimpleNamespace(
+        effective_chat=SimpleNamespace(id=123),
+        message=SimpleNamespace(
+            reply_to_message=SimpleNamespace(
+                text="Qué buena banda es Angine de Poitrine"
+            )
+        ),
+    )
+    context = SimpleNamespace(bot=bot)
+
+    await lmgtfy_command_handler.process(update, context)
+
+    bot.send_message.assert_called_once_with(
+        chat_id=123,
+        text="Te lo busco en Google... https://lmgtfy.com/?q=Angine+de+Poitrine",
+    )
+
+
+@pytest.mark.asyncio
+async def test_lmgtfy_without_a_topic_to_google(lmgtfy_command_handler, monkeypatch):
+    monkeypatch.setattr("commands.lmgtfy.fake_typing", AsyncMock())
+    monkeypatch.setattr(
+        "commands.lmgtfy.topic_extractor",
+        SimpleNamespace(extract_topic=lambda text: None),
+    )
+    bot = MagicMock()
+    bot.send_chat_action = AsyncMock()
+    bot.send_message = AsyncMock()
+    update = SimpleNamespace(
+        effective_chat=SimpleNamespace(id=123),
+        message=SimpleNamespace(
+            reply_to_message=SimpleNamespace(text="esto no tiene tema")
+        ),
+    )
+    context = SimpleNamespace(bot=bot)
+
+    await lmgtfy_command_handler.process(update, context)
+
+    bot.send_message.assert_called_once_with(
+        chat_id=123, text="No sé qué googlear ahí... 😢"
+    )

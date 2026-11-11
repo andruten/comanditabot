@@ -5,3 +5,5 @@ yt-dlp==2026.10.26
 yt-dlp-ejs==0.8.0
 curl-cffi==0.17.0
 bgutil-ytdlp-pot-provider==2.0.2
+spacy==3.8.18
+https://github.com/explosion/spacy-models/releases/download/es_core_news_sm-3.8.0/es_core_news_sm-3.8.0-py3-none-any.whl
