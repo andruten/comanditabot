@@ -6,6 +6,7 @@ import pytest
 import comandita
 from chat_statistics import ChatStatisticsMessageHandlerFactory
 from commands.chat_statistics import ChatStatisticsCommandHandler
+from commands.lmgtfy import LmgtfyCommandHandler
 from commands.mimimi import MiMiMiCommandHandler
 
 # sentenciador is registered as PunisherCommandHandler
@@ -28,6 +29,7 @@ def test_configure_handlers_registers_every_handler():
     ]
     expected = [
         (MediaMessageHandler, -1),
+        (LmgtfyCommandHandler, 0),
         (MiMiMiCommandHandler, 0),
         (PunisherCommandHandler, 0),
         (StarCommandHandler, 0),
