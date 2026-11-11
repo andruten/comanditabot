@@ -72,6 +72,26 @@ def test_extract_topic_falls_back_to_the_longest_noun():
     )
 
 
+def test_extract_topic_ignores_junk_entities_in_recent_banter():
+    assert (
+        topic_extractor.extract_topic(
+            "no sé de qué habláis...",
+            history=[
+                "¿os mola Angine de Poitrine?",
+                "sí, jaja lol xd, qué bandaza!",
+            ],
+        )
+        == "Angine de Poitrine"
+    )
+
+
+def test_entity_validation_filters_chat_slang():
+    assert SpacyTopicExtractor._is_valid_entity("Angine de Poitrine") is True
+    assert SpacyTopicExtractor._is_valid_entity("Kubernetes") is True
+    assert SpacyTopicExtractor._is_valid_entity("qué bandaza") is False
+    assert SpacyTopicExtractor._is_valid_entity("lol xd") is False
+
+
 def test_module_exposes_a_shared_extractor():
     assert isinstance(topic_extractor, SpacyTopicExtractor)
 
