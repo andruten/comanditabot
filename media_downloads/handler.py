@@ -7,6 +7,7 @@ import subprocess
 from collections import defaultdict, deque
 from collections.abc import Mapping
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
@@ -21,6 +22,7 @@ from .downloader import (
     DownloadError,
     MediaDownloader,
     MediaTooLargeError,
+    NoMediaError,
     YtDlpExtractor,
 )
 from .urls import Platform, classify_url, supported_urls
@@ -340,6 +342,27 @@ class MediaReplyDispatcher:
             logger.info("Sent video attachment without thumbnail: %s", path.name)
 
 
+class _Outcome(StrEnum):
+    SUCCESS = "success"
+    NO_MEDIA = "no_media"
+    FAILURE = "failure"
+    SKIPPED = "skipped"
+    RATE_LIMITED = "rate_limited"
+
+
+def _final_reaction(outcomes: list[_Outcome]) -> ReactionEmoji:
+    """Aggregate per-link outcomes into a single reaction for the message."""
+    if _Outcome.SUCCESS in outcomes:
+        return ReactionEmoji.THUMBS_UP
+    if _Outcome.NO_MEDIA in outcomes:
+        return ReactionEmoji.SHRUG
+    if _Outcome.FAILURE in outcomes:
+        return ReactionEmoji.THUMBS_DOWN
+    if _Outcome.RATE_LIMITED in outcomes:
+        return ReactionEmoji.YAWNING_FACE
+    return ReactionEmoji.SLEEPING_FACE
+
+
 class MediaDownloadHandler:
     def __init__(
         self,
@@ -377,11 +400,26 @@ class MediaDownloadHandler:
             youtube_enabled=settings.youtube_enabled,
         )
 
-    async def _set_reaction_safely(self, message, reaction: str) -> None:
+    async def _set_reaction_safely(
+        self, message, reaction: str | None, *, cleanup_on_failure: bool = False
+    ) -> bool:
+        """Set *reaction* best-effort; clear a previous one if it fails.
+
+        Reactions are never guaranteed: chats may disable them entirely or
+        restrict them to an administrator-chosen emoji set. Returns whether
+        the reaction was set.
+        """
         try:
             await message.set_reaction(reaction)
+            return True
         except TelegramError:
             logger.warning("Could not set reaction %s", reaction)
+        if cleanup_on_failure:
+            try:
+                await message.set_reaction(None)
+            except TelegramError:
+                logger.warning("Could not clear the processing reaction")
+        return False
 
     async def process(self, update: Update, context: CallbackContext) -> None:
         message = update.effective_message
@@ -392,18 +430,23 @@ class MediaDownloadHandler:
         if not urls:
             return
 
-        await self._set_reaction_safely(message, ReactionEmoji.EYES)
+        processing_reaction_set = await self._set_reaction_safely(
+            message, ReactionEmoji.EYES
+        )
+        outcomes: list[_Outcome] = []
         for url in urls:
             platform = classify_url(url)
             if platform is Platform.YOUTUBE and not self._youtube_enabled:
                 logger.info("Ignoring YouTube media because it is disabled")
+                outcomes.append(_Outcome.SKIPPED)
                 continue
             if not self._rate_limiter.allow(str(update.effective_user.id)):
                 logger.warning("Rate limit reached for %s media", platform)
+                outcomes.append(_Outcome.RATE_LIMITED)
                 await message.reply_text(
                     "Has alcanzado el límite de descargas. Inténtalo más tarde."
                 )
-                return
+                break
 
             try:
                 logger.info("Starting %s media download", platform)
@@ -431,13 +474,22 @@ class MediaDownloadHandler:
                                 "The media could not be compressed to fit the limit"
                             )
                         await self._reply_dispatcher.send(message, media_path)
-                    await self._set_reaction_safely(message, ReactionEmoji.THUMBS_UP)
+                outcomes.append(_Outcome.SUCCESS)
             except MediaTooLargeError:
                 logger.warning("Media too large for %s media", platform)
-                await self._set_reaction_safely(message, ReactionEmoji.THUMBS_DOWN)
+                outcomes.append(_Outcome.FAILURE)
+            except NoMediaError:
+                logger.info("No downloadable media found for %s media", platform)
+                outcomes.append(_Outcome.NO_MEDIA)
             except DownloadError as error:
                 logger.warning("Failed %s media download: %s", platform, error)
-                await self._set_reaction_safely(message, ReactionEmoji.THUMBS_DOWN)
+                outcomes.append(_Outcome.FAILURE)
+
+        await self._set_reaction_safely(
+            message,
+            _final_reaction(outcomes),
+            cleanup_on_failure=processing_reaction_set,
+        )
 
 
 class MediaMessageHandler(MessageHandler):
