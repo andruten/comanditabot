@@ -1,12 +1,14 @@
 from pathlib import Path
 
 import pytest
+import yt_dlp
 from yt_dlp.networking.impersonate import ImpersonateTarget
 
 from media_downloads.downloader import (
     DownloadError,
     MediaDownloader,
     MediaTooLargeError,
+    NoMediaError,
     YtDlpExtractor,
 )
 
@@ -62,8 +64,87 @@ def test_download_rejects_empty_output(tmp_path):
         extractor=FakeExtractor([]), max_file_size_bytes=45 * MIB
     )
 
-    with pytest.raises(DownloadError, match="No media"):
+    with pytest.raises(NoMediaError, match="no downloadable media"):
         downloader.download("https://x.com/alice/status/1", tmp_path)
+
+
+def test_extractor_reports_text_only_posts_as_no_media(monkeypatch, tmp_path):
+    class FailingYoutubeDL:
+        def __init__(self, settings):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            raise yt_dlp.utils.DownloadError("There is no video in this post")
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FailingYoutubeDL)
+
+    with pytest.raises(NoMediaError):
+        YtDlpExtractor(
+            youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB
+        ).extract("https://x.com/alice/status/1", tmp_path)
+
+
+def test_extractor_keeps_private_media_as_a_generic_download_error(
+    monkeypatch, tmp_path
+):
+    class FailingYoutubeDL:
+        def __init__(self, settings):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            raise yt_dlp.utils.DownloadError("Sign in to confirm you're not a bot")
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FailingYoutubeDL)
+
+    with pytest.raises(DownloadError) as error:
+        YtDlpExtractor(
+            youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB
+        ).extract("https://x.com/alice/status/1", tmp_path)
+
+    assert not isinstance(error.value, NoMediaError)
+
+
+def test_extractor_treats_duration_filtered_youtube_media_as_a_download_error(
+    monkeypatch, tmp_path
+):
+    options = {}
+
+    class FakeYoutubeDL:
+        def __init__(self, settings):
+            options.update(settings)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return None
+
+        def extract_info(self, url, download):
+            options["match_filter"](
+                {"webpage_url": url, "duration": 601}, incomplete=False
+            )
+
+    monkeypatch.setattr("media_downloads.downloader.yt_dlp.YoutubeDL", FakeYoutubeDL)
+
+    with pytest.raises(DownloadError) as error:
+        YtDlpExtractor(
+            youtube_pot_provider_url=None, max_file_size_bytes=45 * MIB
+        ).extract("https://youtube.com/watch?v=example", tmp_path)
+
+    assert not isinstance(error.value, NoMediaError)
+    assert "duration" in str(error.value)
 
 
 def test_download_rejects_file_outside_temporary_directory(tmp_path):

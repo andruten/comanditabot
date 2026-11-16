@@ -10,6 +10,7 @@ from media_downloads.downloader import (
     DownloadError,
     MediaFile,
     MediaTooLargeError,
+    NoMediaError,
 )
 from media_downloads.handler import (
     MediaDownloadHandler,
@@ -66,6 +67,27 @@ class FakeDownloader:
 class FailingDownloader:
     def download(self, url, output_directory):
         raise DownloadError("not available")
+
+
+class NoMediaDownloader:
+    def download(self, url, output_directory):
+        raise NoMediaError("The link contains no downloadable media")
+
+
+class SelectiveDownloader:
+    def __init__(self, outcomes_by_url):
+        self.outcomes_by_url = outcomes_by_url
+
+    def download(self, url, output_directory):
+        outcome = self.outcomes_by_url[url]
+        if isinstance(outcome, Exception):
+            raise outcome
+        files = []
+        for name in outcome:
+            path = output_directory / name
+            path.write_bytes(b"media")
+            files.append(MediaFile(path))
+        return files
 
 
 class FakeVideoCompressor:
@@ -163,7 +185,7 @@ async def test_unsupported_link_is_silent():
 
 
 @pytest.mark.asyncio
-async def test_disabled_youtube_link_only_reacts_with_eyes():
+async def test_disabled_youtube_link_reacts_with_eyes_then_sleeping():
     class RecordingDownloader:
         def __init__(self):
             self.urls = []
@@ -180,7 +202,7 @@ async def test_disabled_youtube_link_only_reacts_with_eyes():
 
     assert downloader.urls == []
     assert message.text_replies == []
-    assert message.reactions == [ReactionEmoji.EYES]
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.SLEEPING_FACE]
 
 
 @pytest.mark.asyncio
@@ -264,7 +286,7 @@ async def test_reaction_failure_does_not_block_the_download():
 
 
 @pytest.mark.asyncio
-async def test_multiple_links_react_with_eyes_once_and_thumbs_up_per_link():
+async def test_multiple_links_react_with_eyes_once_and_a_single_thumbs_up():
     message = RecordingMessage(
         "mira https://x.com/alice/status/1 y https://x.com/bob/status/2"
     )
@@ -273,11 +295,121 @@ async def test_multiple_links_react_with_eyes_once_and_thumbs_up_per_link():
     await handler.process(update_for(message), context_for_bot())
 
     assert message.photo_replies == ["image.jpg", "image.jpg"]
-    assert message.reactions == [
-        ReactionEmoji.EYES,
-        ReactionEmoji.THUMBS_UP,
-        ReactionEmoji.THUMBS_UP,
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_UP]
+
+
+@pytest.mark.asyncio
+async def test_link_without_media_reacts_with_shrug():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    handler = _default_handler(downloader=NoMediaDownloader())
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.SHRUG]
+    assert message.text_replies == []
+
+
+@pytest.mark.asyncio
+async def test_success_wins_over_failures_in_multi_link_messages():
+    message = RecordingMessage(
+        "mira https://x.com/alice/status/1 y https://x.com/bob/status/2"
+    )
+    handler = _default_handler(
+        downloader=SelectiveDownloader(
+            {
+                "https://x.com/alice/status/1": ["image.jpg"],
+                "https://x.com/bob/status/2": DownloadError("not available"),
+            }
+        )
+    )
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_UP]
+
+
+@pytest.mark.asyncio
+async def test_no_media_wins_over_failures_but_loses_to_success():
+    message = RecordingMessage(
+        "mira https://x.com/alice/status/1 y https://x.com/bob/status/2"
+    )
+    no_media_handler = _default_handler(
+        downloader=SelectiveDownloader(
+            {
+                "https://x.com/alice/status/1": NoMediaError("no media"),
+                "https://x.com/bob/status/2": DownloadError("not available"),
+            }
+        )
+    )
+
+    await no_media_handler.process(update_for(message), context_for_bot())
+
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.SHRUG]
+
+    success_message = RecordingMessage(
+        "mira https://x.com/alice/status/1 y https://x.com/bob/status/2"
+    )
+    success_handler = _default_handler(
+        downloader=SelectiveDownloader(
+            {
+                "https://x.com/alice/status/1": NoMediaError("no media"),
+                "https://x.com/bob/status/2": ["image.jpg"],
+            }
+        )
+    )
+
+    await success_handler.process(update_for(success_message), context_for_bot())
+
+    assert success_message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_UP]
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_reacts_with_yawn_after_the_eyes():
+    message = RecordingMessage("https://x.com/alice/status/1")
+    limiter = SlidingWindowRateLimiter(limit=1, period_seconds=60)
+    limiter.allow("42")
+    handler = _default_handler(rate_limiter=limiter)
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.YAWNING_FACE]
+    assert message.text_replies == [
+        "Has alcanzado el límite de descargas. Inténtalo más tarde."
     ]
+
+
+@pytest.mark.asyncio
+async def test_failed_final_reaction_clears_the_processing_reaction():
+    class NoReactionMessage(RecordingMessage):
+        async def set_reaction(self, reaction):
+            self.reactions.append(reaction)
+            if reaction != ReactionEmoji.EYES:
+                raise BadRequest("Reaction_invalid")
+
+    message = NoReactionMessage("https://x.com/alice/status/1")
+    handler = _default_handler(downloader=NoMediaDownloader())
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.SHRUG, None]
+    assert message.text_replies == []
+
+
+@pytest.mark.asyncio
+async def test_eyes_failure_avoids_a_pointless_cleanup_attempt():
+    class NoReactionMessage(RecordingMessage):
+        async def set_reaction(self, reaction):
+            self.reactions.append(reaction)
+            if reaction is not None:
+                raise BadRequest("Reaction_invalid")
+
+    message = NoReactionMessage("https://x.com/alice/status/1")
+    handler = _default_handler(downloader=FakeDownloader(["image.jpg"]))
+
+    await handler.process(update_for(message), context_for_bot())
+
+    assert message.reactions == [ReactionEmoji.EYES, ReactionEmoji.THUMBS_UP]
+    assert message.photo_replies == ["image.jpg"]
 
 
 @pytest.mark.asyncio

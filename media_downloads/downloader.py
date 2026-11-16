@@ -23,6 +23,10 @@ class MediaTooLargeError(DownloadError):
     """Raised when an uncompressed attachment exceeds the configured limit."""
 
 
+class NoMediaError(DownloadError):
+    """Raised when the link contains no downloadable media."""
+
+
 @dataclass(frozen=True)
 class MediaFile:
     path: Path
@@ -41,7 +45,7 @@ class MediaDownloader:
         output_root = output_directory.resolve()
         paths = self._extractor.extract(url, output_root)
         if not paths:
-            raise DownloadError("No media was downloaded")
+            raise NoMediaError("The link contains no downloadable media")
 
         media_files = []
         for path in paths:
@@ -79,11 +83,12 @@ class YtDlpExtractor:
             "yt-dlp starting public media extraction for %s", _loggable_url(url)
         )
         platform = classify_url(url)
+        duration_filter = _YouTubeDurationFilter()
         options = {
             "outtmpl": str(output_directory / "%(id)s.%(ext)s"),
             "noplaylist": platform is Platform.YOUTUBE,
             "format": _ytdlp_format(self._size_limit),
-            "match_filter": _youtube_duration_filter,
+            "match_filter": duration_filter,
             "quiet": True,
             "no_warnings": True,
         }
@@ -95,12 +100,16 @@ class YtDlpExtractor:
             logger.warning(
                 "yt-dlp failed to download %s: %s", _loggable_url(url), error
             )
+            if _is_no_media_error(error):
+                raise NoMediaError("The link contains no downloadable media") from error
             raise DownloadError("The media could not be downloaded") from error
 
         downloaded_paths = sorted(
             (path for path in output_directory.iterdir() if path.is_file()),
             key=lambda path: path.stat().st_mtime_ns,
         )
+        if not downloaded_paths and duration_filter.skipped:
+            raise DownloadError("The media exceeds the supported YouTube duration")
         logger.info(
             "yt-dlp completed %s file(s) for %s: %s",
             len(downloaded_paths),
@@ -156,17 +165,33 @@ def _loggable_url(url: str) -> str:
     return url.split("?", maxsplit=1)[0].split("#", maxsplit=1)[0]
 
 
-def _youtube_duration_filter(info: dict, *, incomplete: bool) -> str | None:
-    if incomplete:
-        return None
+_NO_MEDIA_ERROR_PATTERNS = ("there is no video in this post",)
 
-    webpage_url = info.get("webpage_url") or info.get("original_url")
-    if not webpage_url or classify_url(webpage_url) is not Platform.YOUTUBE:
-        return None
 
-    duration = info.get("duration")
-    if duration is None:
-        return "YouTube videos with an unknown duration are not supported"
-    if duration > YOUTUBE_MAX_DURATION_SECONDS:
-        return "YouTube videos longer than 10 minutes are not supported"
-    return None
+def _is_no_media_error(error: Exception) -> bool:
+    message = str(error).lower()
+    return any(pattern in message for pattern in _NO_MEDIA_ERROR_PATTERNS)
+
+
+class _YouTubeDurationFilter:
+    """Reject YouTube media whose duration exceeds the supported limit."""
+
+    def __init__(self) -> None:
+        self.skipped = False
+
+    def __call__(self, info: dict, *, incomplete: bool) -> str | None:
+        if incomplete:
+            return None
+
+        webpage_url = info.get("webpage_url") or info.get("original_url")
+        if not webpage_url or classify_url(webpage_url) is not Platform.YOUTUBE:
+            return None
+
+        duration = info.get("duration")
+        if duration is None:
+            self.skipped = True
+            return "YouTube videos with an unknown duration are not supported"
+        if duration > YOUTUBE_MAX_DURATION_SECONDS:
+            self.skipped = True
+            return "YouTube videos longer than 10 minutes are not supported"
+        return None
